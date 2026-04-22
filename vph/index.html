@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediFlow — Gestion Dossiers PSDM</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1117; --surface:#181c27; --surface2:#1e2336; --border:#2a2f45;
+  --accent:#3b82f6; --accent2:#6366f1; --green:#22c55e; --amber:#f59e0b;
+  --red:#ef4444; --purple:#a855f7; --cyan:#06b6d4;
+  --text:#e8eaf0; --text2:#8b92a8; --text3:#4f5671;
+  --radius:14px; --radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:6px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:240px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;transition:transform .3s}
+.sidebar-logo{padding:22px 18px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.logo-text{font-size:18px;font-weight:700;letter-spacing:-.5px}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-top:1px}
+.nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;font-size:14px;font-weight:500;color:var(--text2);border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(59,130,246,.15);color:var(--accent)}
+.nav-icon{width:20px;text-align:center;font-size:15px}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px}
+.sidebar-footer{padding:14px;border-top:1px solid var(--border)}
+.main{margin-left:240px;flex:1;padding:26px;max-width:calc(100vw - 240px)}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;flex-wrap:wrap;gap:12px}
+.page-title{font-size:23px;font-weight:700;letter-spacing:-.5px}
+.page-subtitle{font-size:13px;color:var(--text2);margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;transition:all .2s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff} .btn-primary:hover{background:#2563eb;transform:translateY(-1px)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)} .btn-secondary:hover{background:var(--border)}
+.btn-green{background:var(--green);color:#fff} .btn-green:hover{background:#16a34a}
+.btn-amber{background:var(--amber);color:#1a1200} .btn-red{background:var(--red);color:#fff}
+.btn-sm{padding:5px 11px;font-size:12px} .btn-lg{padding:13px 22px;font-size:15px;border-radius:var(--radius)}
+.btn-ghost{background:transparent;color:var(--text2);padding:7px 11px} .btn-ghost:hover{color:var(--text);background:var(--surface2)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:26px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.blue::before{background:var(--accent)} .stat-card.green::before{background:var(--green)}
+.stat-card.amber::before{background:var(--amber)} .stat-card.purple::before{background:var(--purple)}
+.stat-card.red::before{background:var(--red)} .stat-card.cyan::before{background:var(--cyan)}
+.stat-value{font-size:30px;font-weight:700;letter-spacing:-1px;font-family:'DM Mono',monospace}
+.stat-label{font-size:11px;color:var(--text2);margin-top:4px;font-weight:500}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:9px 13px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:12px 13px;font-size:13px;border-bottom:1px solid rgba(42,47,69,.5)}
+tr:hover td{background:rgba(255,255,255,.02)} tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.badge-eval{background:rgba(99,102,241,.15);color:#818cf8} .badge-eval::before{background:#818cf8}
+.badge-essai{background:rgba(6,182,212,.15);color:#22d3ee} .badge-essai::before{background:#22d3ee}
+.badge-dep{background:rgba(245,158,11,.15);color:#fbbf24} .badge-dep::before{background:#fbbf24}
+.badge-attente{background:rgba(168,85,247,.15);color:#c084fc} .badge-attente::before{background:#c084fc;animation:pulse 2s infinite}
+.badge-accord{background:rgba(34,197,94,.15);color:#4ade80} .badge-accord::before{background:#4ade80}
+.badge-commande{background:rgba(59,130,246,.15);color:#60a5fa} .badge-commande::before{background:#60a5fa}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:780px;max-height:92vh;overflow-y:auto;animation:slideUp .25s ease}
+.modal-wide{max-width:960px}
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:2}
+.modal-title{font-size:15px;font-weight:700}
+.modal-body{padding:22px}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:var(--surface)}
+.stepper{display:flex;align-items:flex-start;margin-bottom:24px;overflow-x:auto;padding-bottom:4px}
+.step-item{display:flex;align-items:flex-start;flex:1;min-width:0}
+.step-circle{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;transition:all .3s}
+.step-circle.done{background:var(--green);color:#fff}
+.step-circle.active{background:var(--accent);color:#fff;box-shadow:0 0 0 4px rgba(59,130,246,.2)}
+.step-circle.pending{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+.step-line{flex:1;height:2px;background:var(--border);margin:14px 3px 0;min-width:8px}
+.step-line.done{background:var(--green)}
+.step-col{display:flex;flex-direction:column;align-items:center;gap:4px}
+.step-label{font-size:9px;color:var(--text2);text-align:center;white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis}
+.fs{display:flex;flex-direction:column;gap:6px}
+.fg{display:grid;gap:12px}
+.fg-2{grid-template-columns:1fr 1fr}
+.fg-3{grid-template-columns:1fr 1fr 1fr}
+.fg-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.full{grid-column:1/-1}
+label{font-size:11px;font-weight:600;color:var(--text2)}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:9px 11px;font-family:'DM Sans',sans-serif;font-size:13px;transition:border-color .2s;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+select option{background:var(--surface2)}
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.section-title:first-child{margin-top:0}
+.cb-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.cb-item{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;user-select:none}
+.cb-item:hover{border-color:var(--accent);color:var(--accent)}
+.cb-item.checked{background:rgba(59,130,246,.15);border-color:var(--accent);color:var(--accent)}
+.cb-item input[type=checkbox]{display:none}
+.radio-group{display:flex;gap:8px;flex-wrap:wrap}
+.radio-item{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;user-select:none}
+.radio-item.selected{background:rgba(59,130,246,.15);border-color:var(--accent);color:var(--accent)}
+.info-box{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.info-box.amber{background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.2);color:#fbbf24}
+.alert{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:10px;font-size:13px}
+.alert-amber{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#fbbf24}
+.alert-red{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171}
+.alert-green{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#4ade80}
+.countdown-widget{background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(99,102,241,.1));border:1px solid rgba(168,85,247,.3);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:14px}
+.countdown-digits{font-family:'DM Mono',monospace;font-size:26px;font-weight:700;color:#c084fc}
+.countdown-urgent{color:var(--red)!important}
+.process-step{display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid var(--border)}
+.process-step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.process-step-num.done{background:rgba(34,197,94,.2);color:var(--green)}
+.process-step-num.active{background:rgba(59,130,246,.2);color:var(--accent)}
+.process-step-num.pending{background:var(--surface);color:var(--text3)}
+.tabs{display:flex;gap:3px;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto}
+.tab{padding:7px 13px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;background:none;border-left:none;border-right:none;border-top:none;white-space:nowrap}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
+.filter-pill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text2);transition:all .2s}
+.filter-pill.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.filter-pill:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+.empty-state{text-align:center;padding:50px 20px;color:var(--text2)}
+.empty-icon{font-size:44px;margin-bottom:10px}
+.search-bar{position:relative}
+.search-bar input{padding-left:34px}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none}
+.lpp-chip{font-family:'DM Mono',monospace;font-size:11px;background:rgba(6,182,212,.1);color:var(--cyan);padding:2px 7px;border-radius:4px;border:1px solid rgba(6,182,212,.2)}
+.file-chip{display:flex;align-items:center;gap:5px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:11px}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.upload-zone:hover{border-color:var(--accent);background:rgba(59,130,246,.03)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.sig-pad{border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;cursor:crosshair;touch-action:none}
+.hamburger{display:none;background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:8px}
+.mobile-header{display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;align-items:center;gap:10px}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+.sidebar-backdrop.visible{display:block}
+.adj-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.adj-table th{background:var(--surface2);padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;border:1px solid var(--border)}
+.adj-table td{padding:6px 10px;border:1px solid var(--border);vertical-align:middle}
+.adj-table tr:hover td{background:rgba(255,255,255,.02)}
+.pdf-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)} .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:14px;max-width:100vw;padding-top:68px}
+  .hamburger,.mobile-header{display:flex}
+  .fg-2,.fg-3,.fg-4{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .page-header{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const { jsPDF } = window.jspdf;
+
+// ── Constantes ───────────────────────────────────────────────────────────────
+
+const STATUTS = ['Évaluation','Préconisation','DEP envoyée','En attente CPAM','Accord reçu','Commandé'];
+const STATUTS_SIMPLE = ['DAP envoyée','En attente CPAM','Accord reçu','Commandé'];
+const VPH_SIMPLES = [
+  {code:'FMP',    label:'FMP — Fauteuil roulant manuel pliant'},
+  {code:'FMPR',   label:'FMPR — Fauteuil roulant manuel pliant à dossier rabattable'},
+  {code:'BASE',   label:'BASE — Fauteuil roulant de base'},
+  {code:'POU_S',  label:'POU_S — Poussette simple'},
+  {code:'FRM',    label:'FRM — Fauteuil roulant modulaire manuel'},
+  {code:'FRMC',   label:'FRMC — Fauteuil roulant modulaire configurable'},
+  {code:'FRMA',   label:'FRMA — Fauteuil roulant modulaire actif'},
+  {code:'FRMS',   label:'FRMS — Fauteuil roulant modulaire sport'},
+  {code:'FRMP',   label:'FRMP — Fauteuil roulant modulaire multi-position'},
+  {code:'FRMV',   label:'FRMV — Fauteuil roulant modulaire verticalisation'},
+  {code:'FRE_A',  label:'FRE classe A — Fauteuil électrique'},
+  {code:'FRE_B',  label:'FRE classe B — Fauteuil électrique'},
+  {code:'FRE_C',  label:'FRE classe C — Fauteuil électrique'},
+  {code:'FREP_A', label:'FREP classe A — Électrique multi-position'},
+  {code:'FREP_B', label:'FREP classe B — Électrique multi-position'},
+  {code:'FREP_C', label:'FREP classe C — Électrique multi-position'},
+  {code:'FREV',   label:'FREV — Fauteuil électrique verticalisation'},
+  {code:'SCO_A+', label:'SCO classe A+ — Scooter'},
+  {code:'SCO_B',  label:'SCO classe B — Scooter'},
+  {code:'SCO_C',  label:'SCO classe C — Scooter'},
+  {code:'CYC',    label:'CYC — Cycle/Tricycle'},
+  {code:'POU_MRE',label:'POU_MRE — Poussette modulaire multiréglable'},
+  {code:'AUTRE',  label:'Autre matériel médical'},
+];
+const STATUT_STYLES = {
+  'Évaluation':'badge-eval','Préconisation':'badge-essai','DEP envoyée':'badge-dep',
+  'En attente CPAM':'badge-attente','Accord reçu':'badge-accord','Commandé':'badge-commande',
+  'DAP envoyée':'badge-dep'
+};
+
+const TYPES_VPH = [
+  {code:'FRM', label:'FRM — Fauteuil roulant manuel (propulsion manuelle/à pousser)'},
+  {code:'FRMC',label:'FRMC — Fauteuil roulant modulaire configurable'},
+  {code:'FRMA',label:'FRMA — Fauteuil roulant modulaire actif'},
+  {code:'FRMS',label:'FRMS — Fauteuil roulant modulaire sport'},
+  {code:'FRMP',label:'FRMP — Fauteuil roulant modulaire multi-position'},
+  {code:'FRMV',label:'FRMV — Fauteuil roulant modulaire de verticalisation'},
+  {code:'FRE_A',label:'FRE classe A — Fauteuil électrique'},
+  {code:'FRE_B',label:'FRE classe B — Fauteuil électrique'},
+  {code:'FRE_C',label:'FRE classe C — Fauteuil électrique'},
+  {code:'FREP_A',label:'FREP classe A — Fauteuil électrique multi-position'},
+  {code:'FREP_B',label:'FREP classe B — Fauteuil électrique multi-position'},
+  {code:'FREP_C',label:'FREP classe C — Fauteuil électrique multi-position'},
+  {code:'FREV',label:'FREV — Fauteuil électrique de verticalisation'},
+  {code:'SCO_A+',label:'SCO classe A+ — Scooter'},
+  {code:'SCO_B',label:'SCO classe B — Scooter'},
+  {code:'SCO_C',label:'SCO classe C — Scooter'},
+  {code:'CYC',label:'CYC — Cycle/Tricycle modulaire'},
+  {code:'POU_MRE',label:'POU_MRE — Poussette modulaire multiréglable évolutive'},
+];
+
+const ADJONCTIONS = [
+  {nom:'Double main courante',code:'4978547'},
+  {nom:'Levier latéral',code:'4928928'},
+  {nom:'Kit propulsion électrique (cmd utilisateur)',code:'4929796'},
+  {nom:'Dispositif assistance électrique (cmd accompagnant)',code:'4925054'},
+  {nom:'Supplément appui-tête réglable',code:'4954630'},
+  {nom:'Repose-jambe électrique D+G (FRE/FREP/FREV)',code:'4937991'},
+  {nom:'Tablette complète',code:'4970497'},
+  {nom:'Supplément bariatrique FRM',code:'4922720'},
+  {nom:'Supplément bariatrique FRE/FREP/FREV/SCO',code:'4902165'},
+  {nom:'Levier de basculement FRM',code:'4938766'},
+  {nom:'Boîtier de commande personnalisé FRE/FREP/FREV',code:'4965183'},
+  {nom:'Élévation électrique (lift) FRE/FREP/FREV',code:'4941700'},
+  {nom:'Harnais 4 points POU_MRE',code:'4936922'},
+  {nom:'Support oxygénothérapie/ventilation',code:'4987500'},
+];
+
+const PAP_ITEMS = [
+  {forfait:'PAP A — Dossier',code:'',sous:['Dispositifs cervico-céphaliques','Dispositifs thoraco-lombaires']},
+  {forfait:'PAP A — Membres sup.',code:'',sous:['Positionnement épaule','Positionnement poignet']},
+  {forfait:'PAP B — Membres inf.',code:'',sous:['Positionnement genou']},
+  {forfait:'PAP B — Siège',code:'',sous:['Base de positionnement du siège','Dispositifs bassin','Dispositifs hanches']},
+];
+
+const PRESCRIPTEURS = [
+  {nom:'Dr. Martin Sophie',rpps:'10012345678',specialite:'Médecine Physique et Réadaptation'},
+  {nom:'Dr. Dubois Pierre',rpps:'10023456789',specialite:'Neurologie'},
+  {nom:'Dr. Bernard Claire',rpps:'10034567890',specialite:'Gériatrie'},
+  {nom:'Dr. Leroy Jean',rpps:'10045678901',specialite:'Médecine Générale'},
+];
+
+// ── JSONBin Config (base de données partagée) ────────────────────────────────
+// Après avoir créé un compte sur jsonbin.io :
+// 1. Créer un bin avec [] comme contenu initial
+// 2. Copier l'ID du bin et votre Master Key ci-dessous
+const JSONBIN_BIN_ID  = '69e8fb5910716a4d5de5dea9';
+const JSONBIN_API_KEY = '$2a$10$5zO6qG217JnGLugyn8VrNesbvja1Yo8gLVIHtCTUWJlqwsMJefW7e';
+
+const JSONBIN_CONFIGURED = true; // JSONBin configuré
+
+const syncLoad = async () => {
+  if (!JSONBIN_CONFIGURED) return null;
+  try {
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    const data = await r.json();
+    return data.record || [];
+  } catch(e) { console.warn('JSONBin load error:', e); return null; }
+};
+
+const syncSave = async (dossiers) => {
+  if (!JSONBIN_CONFIGURED) return;
+  try {
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+      body: JSON.stringify(dossiers)
+    });
+  } catch(e) { console.warn('JSONBin save error:', e); }
+};
+
+const initDossiers = () => { try { return JSON.parse(localStorage.getItem('mf_v2')||'[]') } catch{return []} };
+const initSettings = () => { try { return JSON.parse(localStorage.getItem('mf_settings')||'null') } catch{return null} };
+const fmtDate = d => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+const addDays = (d,n) => { const r=new Date(d); r.setDate(r.getDate()+n); return r };
+const daysUntil = ds => ds ? Math.ceil((new Date(ds)-new Date())/(864e5)) : null;
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+// ── PDF Générateur ────────────────────────────────────────────────────────────
+
+const LOGO_MINISTERE = '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';
+const LOGO_MEDITEC = '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';
+
+const DEFAULT_SETTINGS = {
+  nom:'MEDITEC', adresse:'Zone Médicale', cp:'33000', ville:'Bordeaux',
+  tel:'05 56 XX XX XX', email:'contact@meditec.fr',
+  finess:'33XXXXXX', siret:'123 456 789 00012', agrement:'33-2024-XXXX',
+};
+const getSettings = () => {
+  try { return {...DEFAULT_SETTINGS,...JSON.parse(localStorage.getItem('mf_settings')||'{}')}; }
+  catch{return DEFAULT_SETTINGS;}
+};
+
+const pdfHeader = (doc, titre, sousTitre) => {
+  const w=210, m=14;
+  const s = getSettings();
+  try { doc.addImage(LOGO_MINISTERE, 'PNG', m, 6, 62, 22); } catch(e) {
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(0,35,149);
+    doc.text('MINISTERE DE LA SANTE', m, 14);
+    doc.setFontSize(6); doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+    doc.text('Liberte - Egalite - Fraternite', m, 19);
+  }
+  doc.setDrawColor(180,180,180); doc.setLineWidth(0.3);
+  doc.line(m+68, 6, m+68, 30);
+  try { doc.addImage(LOGO_MEDITEC, 'JPEG', m+72, 5, 28, 15); } catch(e) {}
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(20,20,20);
+  doc.text(s.nom, m+104, 11);
+  doc.setFontSize(6.5); doc.setFont('helvetica','normal'); doc.setTextColor(70,70,70);
+  doc.text('PSDM - Prestataire de Services et Distributeur de Materiel Medical', m+104, 16);
+  doc.text('FINESS: '+s.finess+'  |  SIRET: '+s.siret+'  |  Tel: '+s.tel, m+104, 21);
+  doc.text(s.adresse+' - '+s.cp+' '+s.ville+'  |  Agrement: '+s.agrement, m+104, 26);
+  doc.setDrawColor(0,35,149); doc.setLineWidth(0.7);
+  doc.line(m, 32, w-m, 32); doc.setLineWidth(0.2);
+  doc.setFillColor(0,35,149); doc.rect(m, 34, w-m*2, 11,'F');
+  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text(titre, w/2, 41.5, {align:'center'});
+  doc.setTextColor(0,0,0);
+  if(sousTitre){
+    doc.setFontSize(7); doc.setFont('helvetica','italic'); doc.setTextColor(80,80,80);
+    doc.text(sousTitre, w/2, 51, {align:'center'});
+    return 57;
+  }
+  return 49;
+}
+const generateDAP = (d) => {
+  const doc = new jsPDF({format:'a4'});
+  const w=210, m=14;
+  const s = getSettings();
+  let y = pdfHeader(doc,'DEMANDE D\'ACCORD PRÉALABLE (DAP)','Circuit simplifié — FMP, FMPR, BASE, POU_S — Tout médecin prescripteur');
+
+  y = pdfSection(doc,'Identification du bénéficiaire', y);
+  y = pdfRow2(doc,[['Nom',d.nom],['Prénom',d.prenom]], y);
+  y = pdfRow(doc,'Adresse', d.adresse, y);
+  y = pdfRow2(doc,[['Code postal',d.codePostal],['Ville',d.ville],['Téléphone',d.tel]], y);
+  y = pdfRow2(doc,[['N° Sécurité Sociale',d.nsecu],['Date de naissance',fmtDate(d.dateNaissance)]], y);
+  y = pdfRow2(doc,[['Mutuelle',d.mutuelle||'—'],['N° adhérent',d.noMutuelle||'—']], y);
+  y+=3;
+
+  y = pdfSection(doc,'Prescripteur', y);
+  y = pdfRow2(doc,[['Nom prescripteur',d.prescripteurNom],['N° RPPS',d.prescripteurRPPS]], y);
+  y = pdfRow2(doc,[['Spécialité',d.prescripteurSpecialite||'Médecine générale'],['Date ordonnance',fmtDate(d.dateOrdonnance)]], y);
+  y+=3;
+
+  y = pdfSection(doc,'Matériel demandé — Nomenclature LPP', y);
+  const vphLabel = VPH_SIMPLES.find(v=>v.code===d.typeVPH);
+  const motifLabel = d.motifSimple==='renouvellement' ? 'Renouvellement à l\'identique' : 'VPH hors fiches HAS (FMP/FMPR/BASE/POU_S)';
+  y = pdfRow(doc,'Motif du circuit simplifié', motifLabel, y);
+  if(d.motifSimple==='renouvellement'&&d.refVphPrecedent) y = pdfRow(doc,'Référence VPH précédent', d.refVphPrecedent, y);
+  y = pdfRow(doc,'Désignation', vphLabel ? vphLabel.label : (d.typeVPH||d.materielSimple||'—'), y);
+  if(d.marque||d.modele) y = pdfRow2(doc,[['Marque',d.marque||'—'],['Modèle',d.modele||'—']], y);
+  if(d.options) y = pdfRow(doc,'Options / Adjonctions', d.options, y);
+  y = pdfRow2(doc,[['Code LPP',d.codeLPPSimple||'—'],['Quantité','1']], y);
+  y = pdfRow2(doc,[['Prix de vente TTC',d.prixVente?d.prixVente+' €':'—'],['Base remb. SS',d.remboursement?d.remboursement+' €':'—']], y);
+  y = pdfRow(doc,'Diagnostic / indication médicale', d.diagnostic||d.situationSante||'—', y);
+  y+=3;
+
+  y = pdfSection(doc,'Organisme destinataire', y);
+  const isCramif = d.cramif === 'Oui';
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(30,64,175);
+  doc.text(isCramif ? '▶ CRAMIF — Caisse Régionale Assurance Maladie Île-de-France' : '▶ CPAM — Caisse Primaire Assurance Maladie', m+2, y+2);
+  doc.setTextColor(0,0,0); y+=10;
+  y = pdfRow2(doc,[['Date envoi DAP',fmtDate(d.dateDepDEP||new Date())],['Délai légal instruction','15 jours']], y);
+  y+=4;
+
+  if(d.notes) { y = pdfRow(doc,'Observations', d.notes, y); y+=3; }
+
+  // Attestation
+  if(y>240){doc.addPage();y=20;}
+  y = pdfSection(doc,'Attestation et signature', y);
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(40,40,40);
+  doc.text('Je soussigné(e), (nom et qualité) : ____________________________________________', m, y); y+=8;
+  doc.text("certifie l'exactitude des informations ci-dessus et sollicite l'accord préalable de votre organisme.", m, y, {maxWidth:w-m*2}); y+=10;
+  doc.setDrawColor(60,100,200);
+  doc.line(m, y+10, m+80, y+10); doc.line(m+100, y+10, w-m, y+10);
+  doc.setFontSize(7.5); doc.setTextColor(100);
+  doc.text('Date', m+20, y+14); doc.text('Cachet et signature '+s.nom, m+105, y+14);
+  pdfFooter(doc,w);
+  doc.save('DAP_'+d.nom+'_'+d.prenom+'.pdf');
+};
+
+const pdfSection = (doc, titre, y, w=210, m=14) => {
+  doc.setFillColor(235,240,255);
+  doc.rect(m, y-3, w-m*2, 8, 'F');
+  doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(30,64,175);
+  doc.text(titre.toUpperCase(), m+2, y+2);
+  doc.setTextColor(0,0,0);
+  return y+10;
+};
+
+// Affiche une ligne label + valeur dans un tableau à deux colonnes propre
+// lCol = largeur colonne label (défaut 55), retourne le nouveau y
+const pdfRow = (doc, label, value, y, lCol=55, pageW=210, m=14) => {
+  const colW = pageW - m*2;
+  const vCol = colW - lCol;
+  const val = String(value||'').trim() || '—';
+
+  // fond alterné très léger
+  doc.setFillColor(248,249,252);
+  doc.rect(m, y-3.5, colW, 7.5, 'F');
+  doc.setDrawColor(220,225,240);
+  doc.rect(m, y-3.5, colW, 7.5, 'S');
+
+  // label
+  doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(80,90,120);
+  doc.text(label, m+2, y+0.5);
+
+  // séparateur vertical
+  doc.setDrawColor(200,208,230);
+  doc.line(m+lCol, y-3.5, m+lCol, y+4);
+
+  // valeur — gère le retour à la ligne si trop long
+  doc.setFont('helvetica','normal'); doc.setTextColor(20,20,20);
+  const lines = doc.splitTextToSize(val, vCol-4);
+  doc.text(lines, m+lCol+3, y+0.5);
+  const rowH = Math.max(7.5, lines.length * 5);
+  return y + rowH + 1;
+};
+
+// Ligne sur 2 colonnes côte à côte (pour les champs courts : Oui/Non, dates...)
+const pdfRow2 = (doc, items, y, pageW=210, m=14) => {
+  const colW = (pageW - m*2) / items.length;
+  doc.setFillColor(248,249,252);
+  doc.rect(m, y-3.5, pageW-m*2, 7.5, 'F');
+  doc.setDrawColor(220,225,240);
+  doc.rect(m, y-3.5, pageW-m*2, 7.5, 'S');
+  items.forEach(([label, value], i) => {
+    const x = m + i*colW;
+    const lCol = Math.min(colW*0.52, 55);
+    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(80,90,120);
+    doc.text(label, x+2, y+0.5);
+    doc.setDrawColor(200,208,230);
+    doc.line(x+lCol, y-3.5, x+lCol, y+4);
+    doc.setFont('helvetica','normal'); doc.setTextColor(20,20,20);
+    const val = String(value||'').trim()||'—';
+    doc.text(val, x+lCol+2, y+0.5, {maxWidth: colW-lCol-4});
+  });
+  return y + 8.5;
+};
+
+const pdfFooter = (doc, pageW=210) => {
+  doc.setFontSize(7); doc.setTextColor(160);
+  doc.text(`Document généré le ${new Date().toLocaleDateString('fr-FR')} — MediFlow PSDM — MEDITEC Bordeaux`, pageW/2, 289, {align:'center'});
+  doc.setDrawColor(200); doc.line(14, 285, pageW-14, 285);
+};
+
+const generateEvaluation = (d) => {
+  const doc = new jsPDF({format:'a4'});
+  const w=210, m=14;
+  let y = pdfHeader(doc,'FICHE D\'ÉVALUATION DES BESOINS — VPH','Étape 1 — VPH concernés : FRM, FRMC, FRMA, FRMS, FRMP, FRMV, FRE, FREP, FREV, POU_MRE, CYC, SCO');
+
+  const np = () => { pdfFooter(doc,w); doc.addPage(); y=16; };
+  const chk = (h=40) => { if(y+h > 278) np(); };
+
+  // ── Identification bénéficiaire
+  y = pdfSection(doc,'Identification du bénéficiaire', y);
+  y = pdfRow2(doc,[['Nom',d.nom],['Prénom',d.prenom]], y);
+  y = pdfRow(doc,'Adresse (rue)', d.adresse, y);
+  y = pdfRow2(doc,[['Code postal',d.codePostal],['Ville',d.ville],['Téléphone',d.tel]], y);
+  y = pdfRow(doc,'Email', d.email, y);
+  y+=2;
+
+  if(d.assureNom||d.assurePrenom){
+    chk(30);
+    y = pdfSection(doc,'Identification de l\'assuré (si différent du bénéficiaire)', y);
+    y = pdfRow2(doc,[['Nom',d.assureNom],['Prénom',d.assurePrenom]], y);
+    y = pdfRow(doc,'Adresse assuré', d.assureAdresse, y);
+    y = pdfRow2(doc,[['Code postal',d.assureCP],['Ville',d.assureVille],['Téléphone',d.assureTel]], y);
+    y+=2;
+  }
+
+  // ── Prescripteur
+  chk(25);
+  y = pdfSection(doc,'Prescripteur', y);
+  y = pdfRow2(doc,[['Nom prescripteur',d.prescripteurNom],['N° RPPS',d.prescripteurRPPS]], y);
+  y = pdfRow2(doc,[['Spécialité',d.prescripteurSpecialite],['Date ordonnance',fmtDate(d.dateOrdonnance)]], y);
+  y+=3;
+
+  // ── 1 Facteurs personnels
+  chk(45);
+  y = pdfSection(doc,'1 — Facteurs personnels', y);
+  y = pdfRow2(doc,[['Âge',d.age?d.age+' ans':''],['Poids',d.poids?d.poids+' kg':''],['Taille',d.taille?d.taille+' cm':''],['Latéralité',d.lateralite]], y);
+  y = pdfRow(doc,'Main dominante (avant handicap)', d.mainDominante, y);
+  y = pdfRow(doc,'Capacités physiques', d.capPhysiques, y);
+  const capCog = d.capCognitives==='Oui'?'Oui — peut conduire le VPH':d.capCognitives==='Non'?'Non — conduite impossible':d.capCognitives||'';
+  y = pdfRow(doc,'Capacités cognitives pour conduite VPH', capCog, y);
+  y = pdfRow(doc,'Comorbidités', d.comorbidites, y);
+  y+=3;
+
+  // ── 2 Usage
+  chk(50);
+  y = pdfSection(doc,'2 — Usage et activités', y);
+  y = pdfRow2(doc,[['Première acquisition',d.premiereAcquisition||'—'],['Renouvellement / cumul',d.renouvellement||'—']], y);
+  if(d.vphPossede) { y = pdfRow(doc,'VPH possédé (catégorie / date / modèle)', d.vphPossede, y); }
+  y = pdfRow(doc,'Description du projet d\'acquisition', d.projetAcquisition, y);
+  const activites = [d.actVieQuotidienne&&'Vie quotidienne', d.actTravail&&'Travail', d.actLoisirs&&'Loisirs'].filter(Boolean).join(', ')||'—';
+  y = pdfRow(doc,'Activités avec le VPH', activites, y);
+  y = pdfRow(doc,'Temps d\'utilisation prévu', d.tempsUtilisation, y);
+  const depl = [d.deplInterieur&&'Intérieur', d.deplExterieur&&'Extérieur', d.deplTerrain&&'Tout-terrain'].filter(Boolean).join(', ')||'—';
+  y = pdfRow(doc,'Types de déplacements', depl, y);
+  y+=3;
+
+  // ── 3 Environnement
+  chk(55);
+  y = pdfSection(doc,'3 — Facteurs environnementaux', y);
+  const lieuVie = d.lieuVieAppart?'Appartement':d.lieuVieMaison?'Maison':d.lieuVieEtab?'Établissement méd.-soc. / EHPAD':'—';
+  y = pdfRow(doc,'Lieu de vie', lieuVie, y);
+  y = pdfRow(doc,'Description du lieu de vie', d.descLieu, y);
+  y = pdfRow(doc,'Accessibilité intérieure / extérieure', d.accessibilite, y);
+  y = pdfRow2(doc,[['Escaliers',d.escaliers||'—'],['Ascenseur',d.ascenseur||'—'],['Terrains accidentés / côtes',d.terrainsAccidentes||'—']], y);
+  const envHumain = [d.seul&&'Seul(e)',d.couple&&'En couple',d.famille&&'En famille',d.auxVie&&'Auxiliaire de vie/aidant'].filter(Boolean).join(', ')||'—';
+  y = pdfRow(doc,'Environnement humain au domicile', envHumain, y);
+  y = pdfRow2(doc,[['Activité professionnelle',d.activitePro||'—'],['Déplacement travail',d.deplTravail||'—']], y);
+  y = pdfRow2(doc,[['Conduite véhicule motorisé',d.conduiteVehicule||'—'],['Transports en commun',d.transportsCommun||'—']], y);
+  y+=3;
+
+  // ── 4 Situation de santé
+  chk(35);
+  y = pdfSection(doc,'4 — Situation de santé (pathologie, anamnèse, comorbidités…)', y);
+  y = pdfRow(doc,'Situation de santé', d.situationSante||'—', y, 55, w, m);
+  y+=3;
+
+  // ── Synthèse
+  chk(30);
+  y = pdfSection(doc,'Synthèse de la demande', y);
+  y = pdfRow(doc,'Catégorie VPH envisagée', d.typeVPH||'—', y);
+  y = pdfRow(doc,'Synthèse', d.syntheseDemande||'—', y);
+  y+=4;
+
+  // ── Attestation
+  chk(50);
+  y = pdfSection(doc,'Attestation et signature', y);
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(40,40,40);
+  const cat=d.typeVPH||'';
+  const catHaut=['FRMS','FRMV','FRE_A','FRE_B','FRE_C','FREP_A','FREP_B','FREP_C','FREV','SCO_A+','SCO_B','SCO_C','CYC','POU_MRE'].includes(cat);
+  const catMed=['FRMC','FRMA','FRMP'].includes(cat);
+  const attText = catHaut
+    ? 'Catégorie nécessitant une équipe pluridisciplinaire (médecin MPR/DU Appareillage + ergothérapeute/kiné spécialisé VPH).'
+    : catMed ? 'Catégorie : prescripteur compétent (médecin MPR, DU Appareillage ou ergothérapeute).'
+    : 'Catégorie FRM : prescripteur compétent (médecin ou ergothérapeute).';
+  doc.text(attText, m, y, {maxWidth:w-m*2}); y+=9;
+  doc.text('Je soussigné(e), (nom et qualité) : ____________________________________________', m, y); y+=8;
+  doc.text('atteste que cette fiche d\'évaluation a été réalisée par le prescripteur compétent ou l\'équipe pluridisciplinaire.', m, y, {maxWidth:w-m*2}); y+=10;
+  doc.setDrawColor(60,100,200);
+  doc.line(m, y+10, m+80, y+10); doc.line(m+100, y+10, w-m, y+10);
+  doc.setFontSize(7.5); doc.setTextColor(100);
+  doc.text('Date', m+20, y+14); doc.text('Signature', m+130, y+14);
+
+  pdfFooter(doc,w);
+  doc.save(`Evaluation_${d.nom}_${d.prenom}.pdf`);
+};
+
+const generatePreconisation = (d) => {
+  const doc = new jsPDF({format:'a4'});
+  const w=210, m=14;
+  let y = pdfHeader(doc,'FICHE DE PRÉCONISATION — VPH','Étape 2 — Rédigée sur la base de la fiche d\'évaluation des besoins');
+
+  const np = () => { pdfFooter(doc,w); doc.addPage(); y=16; };
+  const chk = (h=40) => { if(y+h > 278) np(); };
+
+  y = pdfSection(doc,'Identification du bénéficiaire', y);
+  y = pdfRow2(doc,[['Nom',d.nom],['Prénom',d.prenom]], y);
+  y = pdfRow(doc,'Adresse', d.adresse, y);
+  y = pdfRow2(doc,[['Code postal',d.codePostal],['Ville',d.ville],['Téléphone',d.tel]], y);
+  y = pdfRow(doc,'Email', d.email, y);
+  y+=3;
+
+  chk(20);
+  y = pdfSection(doc,'Catégorie de VPH préconisée', y);
+  const vph = TYPES_VPH.find(v=>v.code===d.typeVPH);
+  doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(30,64,175);
+  doc.text(`▶  ${vph?vph.label:(d.typeVPH||'Non renseigné')}`, m+2, y+2);
+  doc.setTextColor(0,0,0); y+=10;
+
+  chk(20);
+  y = pdfSection(doc,'Mesures anthropométriques', y);
+  y = pdfRow2(doc,[['Taille',d.taille?d.taille+' cm':'—'],['Poids',d.poids?d.poids+' kg':'—'],['Latéralité',d.lateralite||'—']], y);
+  y+=3;
+
+  chk(60);
+  y = pdfSection(doc,'Caractéristiques du VPH préconisé', y);
+  [['Mode de propulsion',d.modePropulsion],['Châssis',d.chassis],['Dossier',d.dossier],
+   ['Repose-pied',d.reposePied],['Accoudoir',d.accoudoir],['Siège',d.siege],
+   ['Roues',d.roues],['Système de conduite',d.systemeConduite]
+  ].forEach(([l,v])=>{ chk(10); y=pdfRow(doc,l,v,y); });
+  y+=3;
+
+  // PAP
+  const paps = d.papSelectionnes||[];
+  if(paps.length>0){
+    chk(20);
+    y = pdfSection(doc,'Produits d\'aide à la posture (PAP)', y);
+    paps.forEach(p => { chk(10); y=pdfRow(doc,'PAP',p,y); });
+    y+=3;
+  }
+
+  // Adjonctions
+  const adjs = d.adjonctions||[];
+  if(adjs.length>0){
+    chk(25);
+    y = pdfSection(doc,'Adjonctions sélectionnées (nomenclature LPP)', y);
+    adjs.forEach(code => {
+      const a = ADJONCTIONS.find(x=>x.code===code);
+      if(!a) return;
+      chk(10);
+      y = pdfRow2(doc,[['Désignation',a.nom],['Code LPP',a.code]], y);
+    });
+    y+=3;
+  }
+
+  // Adjonctions sur devis
+  if(d.adjDevis && d.adjDevis.some(r=>r.desc)){
+    chk(25);
+    y = pdfSection(doc,'Adjonctions sur devis (hors nomenclature)', y);
+    d.adjDevis.filter(r=>r.desc).forEach((r,i)=>{
+      chk(20);
+      y = pdfRow(doc,`Option ${i+1} — Description`, r.desc, y);
+      y = pdfRow(doc,`Option ${i+1} — Justification`, r.justif||'—', y);
+      y+=2;
+    });
+  }
+
+  // Attestation
+  chk(55);
+  y = pdfSection(doc,'Attestation et signature', y);
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(40,40,40);
+  doc.text('Je soussigné(e), (nom et qualité) : ____________________________________________', m, y); y+=8;
+  doc.text('atteste que cette fiche de préconisation a été réalisée par le prescripteur compétent.', m, y, {maxWidth:w-m*2}); y+=10;
+  doc.setDrawColor(60,100,200);
+  doc.line(m, y+10, m+80, y+10); doc.line(m+100, y+10, w-m, y+10);
+  doc.setFontSize(7.5); doc.setTextColor(100);
+  doc.text('Date', m+20, y+14); doc.text('Signature', m+130, y+14);
+
+  pdfFooter(doc,w);
+  doc.save(`Preconisation_${d.nom}_${d.prenom}.pdf`);
+};
+
+// ── Composants réutilisables ─────────────────────────────────────────────────
+
+const Radio = ({label, name, value, current, onChange}) => (
+  <div className={`radio-item ${current===value?'selected':''}`} onClick={()=>onChange(value)}>
+    <span>{current===value?'●':'○'}</span> {label}
+  </div>
+);
+
+const CB = ({label, checked, onChange}) => (
+  <div className={`cb-item ${checked?'checked':''}`} onClick={()=>onChange(!checked)}>
+    <span>{checked?'☑':'☐'}</span> {label}
+  </div>
+);
+
+const Champ = ({label, val, onChange, type='text', placeholder='', full=false, mono=false, rows}) => (
+  <div className={`fs ${full?'full':''}`}>
+    <label>{label}</label>
+    {rows
+      ? <textarea value={val||''} onChange={e=>onChange(e.target.value)} rows={rows} placeholder={placeholder} />
+      : <input type={type} value={val||''} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={mono?{fontFamily:'DM Mono'}:{}} />
+    }
+  </div>
+);
+
+const Sel = ({label, val, onChange, opts, full=false}) => (
+  <div className={`fs ${full?'full':''}`}>
+    <label>{label}</label>
+    <select value={val||''} onChange={e=>onChange(e.target.value)}>
+      <option value=''>— Choisir —</option>
+      {opts.map(o=><option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}
+    </select>
+  </div>
+);
+
+// ── Signature Pad ─────────────────────────────────────────────────────────────
+const SigPad = ({onSave, onClose}) => {
+  const ref = useRef(null);
+  const drawing = useRef(false);
+  const last = useRef(null);
+  const pos = (e,c) => { const r=c.getBoundingClientRect(),t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; };
+  const start = e => { drawing.current=true; last.current=pos(e,ref.current); };
+  const draw = e => {
+    if(!drawing.current) return; e.preventDefault();
+    const c=ref.current, ctx=c.getContext('2d'), p=pos(e,c);
+    ctx.beginPath(); ctx.moveTo(last.current.x,last.current.y); ctx.lineTo(p.x,p.y);
+    ctx.strokeStyle='#1e3a8a'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke();
+    last.current=p;
+  };
+  const stop = () => { drawing.current=false; };
+  const clear = () => ref.current.getContext('2d').clearRect(0,0,ref.current.width,ref.current.height);
+  return (
+    <div className="modal-overlay">
+      <div className="modal" style={{maxWidth:500}}>
+        <div className="modal-header"><span className="modal-title">✍️ Signature électronique</span><button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button></div>
+        <div className="modal-body">
+          <p style={{fontSize:13,color:'var(--text2)',marginBottom:12}}>Signez dans la zone ci-dessous avec votre doigt ou stylet.</p>
+          <canvas ref={ref} className="sig-pad" width={460} height={160} style={{width:'100%',height:160}}
+            onMouseDown={start} onMouseMove={draw} onMouseUp={stop} onMouseLeave={stop}
+            onTouchStart={start} onTouchMove={draw} onTouchEnd={stop} />
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={clear}>🗑 Effacer</button>
+          <button className="btn btn-primary" onClick={()=>onSave(ref.current.toDataURL())}>✅ Valider</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Countdown ─────────────────────────────────────────────────────────────────
+const Countdown = ({dateEnvoi}) => {
+  const ech = addDays(dateEnvoi,15);
+  const rem = daysUntil(ech);
+  const urgent = rem!==null && rem<=3;
+  const past = rem!==null && rem<0;
+  return (
+    <div className="countdown-widget">
+      <div style={{fontSize:28}}>{past?'⏰':urgent?'⚠️':'⏳'}</div>
+      <div>
+        <div className={`countdown-digits ${urgent||past?'countdown-urgent':''}`}>
+          {past?'DÉPASSÉ':rem===0?'AUJOURD\'HUI':`J-${rem}`}
+        </div>
+        <div style={{fontSize:12,color:'var(--text2)'}}>
+          {past?`Délai dépassé depuis ${Math.abs(rem)} jour(s) — Relancer la CPAM`:`Réponse CPAM attendue le ${ech.toLocaleDateString('fr-FR')}`}
+        </div>
+      </div>
+      {(urgent||past)&&<span className="badge badge-dep" style={{marginLeft:'auto'}}>Relancer</span>}
+    </div>
+  );
+};
+
+// ── Formulaire Circuit Simplifié ─────────────────────────────────────────────
+const emptySimple = () => ({
+  id:uid(), circuit:'simple', statut:'DAP envoyée', dateCreation:new Date().toISOString(),
+  motifSimple:'renouvellement', refVphPrecedent:'', marque:'', modele:'', options:'',
+  nom:'',prenom:'',nsecu:'',dateNaissance:'',adresse:'',codePostal:'',ville:'',tel:'',email:'',
+  mutuelle:'',noMutuelle:'',
+  prescripteurNom:'',prescripteurRPPS:'',prescripteurSpecialite:'',dateOrdonnance:'',
+  typeVPH:'',materielSimple:'',codeLPPSimple:'',prixVente:'',remboursement:'',
+  diagnostic:'',dateDepDEP:'',dateAccordCPAM:'',noAccordCPAM:'',
+  cramif:'Non', fichiers:[], notes:'',
+});
+
+const DossierSimpleForm = ({onSave, onClose, existing}) => {
+  const [d, setD] = useState(existing || emptySimple());
+  const set = (k,v) => setD(p=>({...p,[k]:v}));
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <div className="modal-header">
+          <div>
+            <div className="modal-title">{existing?'✏️ Modifier':'➕ Nouveau dossier — Circuit simplifié'}</div>
+            <div style={{fontSize:11,color:'var(--cyan)',marginTop:2}}>
+              ✅ Renouvellement à l'identique (tout VPH) ou FMP/FMPR/BASE/POU_S — Sans fiche évaluation ni préconisation
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div className="info-box">
+            Ce circuit s'applique dans <strong>deux cas :</strong>
+            <div style={{marginTop:6}}><strong>1. Renouvellement identique</strong> — même fauteuil, marque, modèle et options, quel que soit le type de VPH.</div>
+            <div style={{marginTop:4}}><strong>2. VPH hors fiches HAS</strong> — FMP, FMPR, BASE, POU_S : tout médecin prescripteur.</div>
+            <div style={{marginTop:4}}>Dans les deux cas : ordonnance + DAP à la CPAM ou CRAMIF (IDF).</div>
+          </div>
+          <div className="fg fg-2" style={{marginBottom:12}}>
+            <div className="fs full">
+              <label>Motif du circuit simplifié *</label>
+              <div className="radio-group">
+                <Radio label="Renouvellement identique (meme VPH)" value="renouvellement" current={d.motifSimple} onChange={v=>set('motifSimple',v)}/>
+                <Radio label="VPH hors fiches HAS (FMP/FMPR/BASE/POU_S)" value="hors_has" current={d.motifSimple} onChange={v=>set('motifSimple',v)}/>
+              </div>
+            </div>
+            {d.motifSimple==='renouvellement'&&(
+              <div className="fs full">
+                <label>Référence du VPH à renouveler (marque / modèle / options)</label>
+                <input value={d.refVphPrecedent||''} onChange={e=>set('refVphPrecedent',e.target.value)} placeholder="Ex: Invacare Action 3NG — châssis pliant — repose-pieds escamotables"/>
+              </div>
+            )}
+          </div>
+
+          <div className="section-title">Patient</div>
+          <div className="fg fg-2">
+            <Champ label="Nom *" val={d.nom} onChange={v=>set('nom',v)} placeholder="DUPONT"/>
+            <Champ label="Prénom *" val={d.prenom} onChange={v=>set('prenom',v)} placeholder="Jean"/>
+            <Champ label="N° Sécurité Sociale" val={d.nsecu} onChange={v=>set('nsecu',v)} placeholder="1 75 06 33 XXX XXX XX" mono/>
+            <Champ label="Date de naissance" val={d.dateNaissance} onChange={v=>set('dateNaissance',v)} type="date"/>
+            <Champ label="Adresse" val={d.adresse} onChange={v=>set('adresse',v)} full placeholder="12 rue de la Paix"/>
+            <Champ label="Code postal" val={d.codePostal} onChange={v=>set('codePostal',v)} placeholder="75001" mono/>
+            <Champ label="Ville" val={d.ville} onChange={v=>set('ville',v)} placeholder="Paris"/>
+            <Champ label="Téléphone" val={d.tel} onChange={v=>set('tel',v)} placeholder="06 XX XX XX XX"/>
+            <Champ label="Mutuelle" val={d.mutuelle} onChange={v=>set('mutuelle',v)}/>
+            <Champ label="N° adhérent mutuelle" val={d.noMutuelle} onChange={v=>set('noMutuelle',v)} mono/>
+          </div>
+
+          <div className="section-title">Prescripteur (tout médecin)</div>
+          <div className="fg fg-2">
+            <div className="fs full">
+              <label>Sélectionner depuis la liste</label>
+              <select onChange={e=>{const p=PRESCRIPTEURS.find(x=>x.rpps===e.target.value);if(p){set('prescripteurNom',p.nom);set('prescripteurRPPS',p.rpps);set('prescripteurSpecialite',p.specialite);}}}>
+                <option value="">— Saisir manuellement ou choisir —</option>
+                {PRESCRIPTEURS.map(p=><option key={p.rpps} value={p.rpps}>{p.nom} — {p.specialite}</option>)}
+              </select>
+            </div>
+            <Champ label="Nom prescripteur" val={d.prescripteurNom} onChange={v=>set('prescripteurNom',v)} placeholder="Dr. ..."/>
+            <Champ label="N° RPPS" val={d.prescripteurRPPS} onChange={v=>set('prescripteurRPPS',v)} placeholder="10012345678" mono/>
+            <Champ label="Spécialité" val={d.prescripteurSpecialite} onChange={v=>set('prescripteurSpecialite',v)} placeholder="Médecine générale"/>
+            <Champ label="Date ordonnance" val={d.dateOrdonnance} onChange={v=>set('dateOrdonnance',v)} type="date"/>
+          </div>
+
+          <div className="section-title">Matériel demandé</div>
+          <div className="fg fg-2">
+            <div className="fs full">
+              <label>Type de VPH *</label>
+              <select value={d.typeVPH||''} onChange={e=>set('typeVPH',e.target.value)}>
+                <option value="">— Sélectionner —</option>
+                {VPH_SIMPLES.map(v=><option key={v.code} value={v.code}>{v.label}</option>)}
+              </select>
+            </div>
+            {d.typeVPH==='AUTRE'&&<Champ label="Désignation du matériel" val={d.materielSimple} onChange={v=>set('materielSimple',v)} full placeholder="Ex: Déambulateur, coussin..."/>}
+            <Champ label="Marque" val={d.marque||''} onChange={v=>set('marque',v)} placeholder="Ex: Invacare, Sunrise Medical..."/>
+            <Champ label="Modèle" val={d.modele||''} onChange={v=>set('modele',v)} placeholder="Ex: Action 3NG, Quickie 2..."/>
+            <Champ label="Options / Adjonctions" val={d.options||''} onChange={v=>set('options',v)} full placeholder="Ex: repose-pieds escamotables, accoudoirs réglables..."/>
+            <Champ label="Code LPP" val={d.codeLPPSimple} onChange={v=>set('codeLPPSimple',v)} placeholder="XXXXXXX" mono/>
+            <Champ label="Prix de vente TTC (€)" val={d.prixVente} onChange={v=>set('prixVente',v)} placeholder="160.00" mono/>
+            <Champ label="Base remboursement SS (€)" val={d.remboursement} onChange={v=>set('remboursement',v)} placeholder="160.00" mono/>
+            <Champ label="Diagnostic / indication" val={d.diagnostic} onChange={v=>set('diagnostic',v)} full placeholder="Pathologie justifiant le matériel..."/>
+          </div>
+
+          <div className="section-title">Demande d'Accord Préalable (DAP)</div>
+          <div className="fg fg-2">
+            <div className="fs full">
+              <label>Organisme destinataire</label>
+              <div className="radio-group">
+                <Radio label="CPAM (hors IDF)" value="Non" current={d.cramif} onChange={v=>set('cramif',v)}/>
+                <Radio label="CRAMIF (Île-de-France)" value="Oui" current={d.cramif} onChange={v=>set('cramif',v)}/>
+              </div>
+            </div>
+            <Champ label="Date d'envoi DAP" val={d.dateDepDEP} onChange={v=>set('dateDepDEP',v)} type="date"/>
+            <Champ label="Date souhaitée de fourniture" val={d.dateSouhaitee} onChange={v=>set('dateSouhaitee',v)} type="date"/>
+            <Champ label="N° accord reçu" val={d.noAccordCPAM} onChange={v=>set('noAccordCPAM',v)} placeholder="CPAM-XXXX" mono/>
+            <Champ label="Date accord" val={d.dateAccordCPAM} onChange={v=>set('dateAccordCPAM',v)} type="date"/>
+          </div>
+          {d.dateDepDEP&&<div style={{marginTop:8}}><Countdown dateEnvoi={d.dateDepDEP}/></div>}
+
+          <div className="section-title">Documents</div>
+          <div className="fg fg-2">
+            {['Ordonnance médicale','Accord CPAM/CRAMIF'].map(docType=>(
+              <div key={docType} className="fs">
+                <label>{docType}</label>
+                <div className="upload-zone">
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e=>{const f=e.target.files[0];if(f) set('fichiers',[...(d.fichiers||[]),{nom:f.name,type:docType,date:new Date().toISOString()}]);}}/>
+                  <div style={{pointerEvents:'none'}}><div style={{fontSize:20,marginBottom:4}}>📎</div><div style={{fontSize:12,color:'var(--text2)'}}>Déposer ou cliquer</div></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {(d.fichiers||[]).length>0&&(
+            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:10}}>
+              {d.fichiers.map((f,i)=><div key={i} className="file-chip">📄 {f.nom}<button style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',marginLeft:4}} onClick={()=>set('fichiers',d.fichiers.filter((_,j)=>j!==i))}>✕</button></div>)}
+            </div>
+          )}
+
+          <div className="section-title">Statut & notes</div>
+          <div className="fg fg-2">
+            <div className="fs">
+              <label>Statut du dossier</label>
+              <select value={d.statut} onChange={e=>set('statut',e.target.value)}>
+                {STATUTS_SIMPLE.map(s=><option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <Champ label="Notes internes" val={d.notes} onChange={v=>set('notes',v)} rows={2} placeholder="Observations..."/>
+          </div>
+
+          <div className="pdf-actions">
+            <button className="btn btn-primary" onClick={()=>generateDAP(d)}>📄 Générer Demande DAP PDF</button>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>Annuler</button>
+          <button className="btn btn-green btn-lg" onClick={()=>onSave(d)}>💾 Enregistrer le dossier</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── StepDocs : composant séparé pour éviter le hook dans un tableau ───────────
+const StepDocs = ({d, set}) => {
+  const [showSigModal, setShowSigModal] = useState(false);
+  return (
+    <div>
+      <div className="section-title">Pièces du dossier</div>
+      <div className="fg fg-2">
+        {['Ordonnance médicale','Certificat médical','Fiche évaluation signée','Fiche préconisation signée','Accord CPAM'].map(docType=>(
+          <div key={docType} className="fs">
+            <label>{docType}</label>
+            <div className="upload-zone">
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e=>{
+                const f=e.target.files[0];
+                if(f) set('fichiers',[...(d.fichiers||[]),{nom:f.name,type:docType,date:new Date().toISOString()}]);
+              }}/>
+              <div style={{pointerEvents:'none'}}>
+                <div style={{fontSize:22,marginBottom:4}}>📎</div>
+                <div style={{fontSize:12,color:'var(--text2)'}}>Déposer ou cliquer</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {(d.fichiers||[]).length>0&&(
+        <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>
+          {d.fichiers.map((f,i)=>(
+            <div key={i} className="file-chip">
+              📄 <span>{f.nom}</span>
+              <button style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',marginLeft:4}}
+                onClick={()=>set('fichiers',d.fichiers.filter((_,j)=>j!==i))}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="section-title" style={{marginTop:18}}>DEP et accord CPAM</div>
+      <div className="fg fg-2">
+        <Champ label="Date d'envoi DEP à la CPAM" val={d.dateDepDEP} onChange={v=>set('dateDepDEP',v)} type="date"/>
+        <Champ label="Date souhaitée de fourniture" val={d.dateSouhaitee} onChange={v=>set('dateSouhaitee',v)} type="date"/>
+        <Champ label="N° accord CPAM" val={d.noAccordCPAM} onChange={v=>set('noAccordCPAM',v)} placeholder="CPAM33-XXXX" mono/>
+        <Champ label="Date accord CPAM" val={d.dateAccordCPAM} onChange={v=>set('dateAccordCPAM',v)} type="date"/>
+      </div>
+      {d.dateDepDEP&&<div style={{marginTop:12}}><Countdown dateEnvoi={d.dateDepDEP}/></div>}
+      <div className="section-title" style={{marginTop:18}}>Signature électronique (devis / bon de commande)</div>
+      {d.signature
+        ? <div className="alert alert-green">✅ Document signé électroniquement
+            <button className="btn btn-sm btn-secondary" style={{marginLeft:10}} onClick={()=>set('signature',null)}>Annuler</button>
+          </div>
+        : <button className="btn btn-primary btn-lg" onClick={()=>setShowSigModal(true)}>✍️ Faire signer sur tablette</button>
+      }
+      {showSigModal&&<SigPad onSave={sig=>{set('signature',sig);setShowSigModal(false);}} onClose={()=>setShowSigModal(false)}/>}
+    </div>
+  );
+};
+
+// ── Formulaire multi-étapes ───────────────────────────────────────────────────
+
+const STEPS = ['Patient','Évaluation 1-2','Évaluation 3-4','Préconisation','Adjonctions','Documents','Récap'];
+
+const emptyDossier = () => ({
+  id:uid(), statut:'Évaluation', dateCreation:new Date().toISOString(),
+  // Identité
+  nom:'',prenom:'',nsecu:'',dateNaissance:'',adresse:'',codePostal:'',ville:'',tel:'',email:'',mutuelle:'',noMutuelle:'',priseEnCharge:'100% SS',
+  // Assuré (si diff)
+  assureNom:'',assurePrenom:'',assureAdresse:'',assureCP:'',assureVille:'',assureTel:'',
+  // Prescripteur
+  prescripteurNom:'',prescripteurRPPS:'',prescripteurSpecialite:'',dateOrdonnance:'',
+  // Eval 1 — Facteurs personnels
+  age:'',poids:'',taille:'',lateralite:'',mainDominante:'',capPhysiques:'',capCognitives:'',comorbidites:'',
+  // Eval 2 — Usage
+  premiereAcquisition:'',renouvellement:'',vphPossede:'',projetAcquisition:'',
+  actVieQuotidienne:false,actTravail:false,actLoisirs:false,tempsUtilisation:'',
+  deplInterieur:false,deplExterieur:false,deplTerrain:false,
+  // Eval 3 — Environnement
+  lieuVieAppart:false,lieuVieMaison:false,lieuVieEtab:false,descLieu:'',accessibilite:'',
+  escaliers:'',ascenseur:'',terrainsAccidentes:'',
+  seul:false,couple:false,famille:false,auxVie:false,
+  activitePro:'',deplTravail:'',conduiteVehicule:'',conduiteParTiers:'',transportsCommun:'',
+  // Eval 4 — Santé
+  situationSante:'',syntheseDemande:'',typeVPH:'',
+  // Préconisation
+  modePropulsion:'',chassis:'',dossier:'',reposePied:'',accoudoir:'',siege:'',roues:'',systemeConduite:'',
+  papSelectionnes:[],
+  // Adjonctions
+  adjonctions:[],adjDevis:[{desc:'',justif:''},{desc:'',justif:''},{desc:'',justif:''}],
+  // Admin
+  dateDepDEP:'',dateAccordCPAM:'',noAccordCPAM:'',refFournisseur:'',
+  fichiers:[], signature:null, notes:'',
+});
+
+const DossierForm = ({onSave, onClose, existing}) => {
+  const [step, setStep] = useState(0);
+  const [d, setD] = useState(existing || emptyDossier());
+  const [showSig, setShowSig] = useState(false); // conservé pour usage futur
+  const set = (k,v) => setD(p=>({...p,[k]:v}));
+  const tog = k => setD(p=>({...p,[k]:!p[k]}));
+
+  const togAdj = (code) => setD(p=>{
+    const a=p.adjonctions||[];
+    return {...p, adjonctions: a.includes(code)?a.filter(x=>x!==code):[...a,code]};
+  });
+  const togPAP = (label) => setD(p=>{
+    const a=p.papSelectionnes||[];
+    return {...p, papSelectionnes: a.includes(label)?a.filter(x=>x!==label):[...a,label]};
+  });
+  const setAdjDevis = (i,k,v) => setD(p=>{
+    const a=[...(p.adjDevis||[{desc:'',justif:''},{desc:'',justif:''},{desc:'',justif:''}])];
+    a[i]={...a[i],[k]:v};
+    return {...p,adjDevis:a};
+  });
+
+  const steps = [
+    // STEP 0 — Patient
+    () => (
+      <div>
+        <div className="info-box">Renseignez l'identité complète du bénéficiaire du VPH et les informations administratives.</div>
+        <div className="section-title">Bénéficiaire</div>
+        <div className="fg fg-2">
+          <Champ label="Nom *" val={d.nom} onChange={v=>set('nom',v)} placeholder="DUPONT"/>
+          <Champ label="Prénom *" val={d.prenom} onChange={v=>set('prenom',v)} placeholder="Jean"/>
+          <Champ label="N° Sécurité Sociale *" val={d.nsecu} onChange={v=>set('nsecu',v)} placeholder="1 75 06 33 XXX XXX XX" mono/>
+          <Champ label="Date de naissance" val={d.dateNaissance} onChange={v=>set('dateNaissance',v)} type="date"/>
+          <Champ label="Adresse (n° et rue)" val={d.adresse} onChange={v=>set('adresse',v)} placeholder="12 rue de la Paix" full/>
+          <Champ label="Code postal" val={d.codePostal} onChange={v=>set('codePostal',v)} placeholder="33000" mono/>
+          <Champ label="Ville" val={d.ville} onChange={v=>set('ville',v)} placeholder="Bordeaux"/>
+          <Champ label="Téléphone" val={d.tel} onChange={v=>set('tel',v)} placeholder="06 XX XX XX XX"/>
+          <Champ label="Email" val={d.email} onChange={v=>set('email',v)} type="email" placeholder="patient@mail.fr"/>
+          <Champ label="Mutuelle" val={d.mutuelle} onChange={v=>set('mutuelle',v)} placeholder="Nom mutuelle"/>
+          <Champ label="N° adhérent mutuelle" val={d.noMutuelle} onChange={v=>set('noMutuelle',v)} mono/>
+          <Sel label="Prise en charge prévue" val={d.priseEnCharge} onChange={v=>set('priseEnCharge',v)}
+            opts={['100% SS','60% SS + mutuelle','60% SS','Autre']}/>
+        </div>
+        <div className="section-title">Assuré (si différent du bénéficiaire)</div>
+        <div className="fg fg-2">
+          <Champ label="Nom assuré" val={d.assureNom} onChange={v=>set('assureNom',v)}/>
+          <Champ label="Prénom assuré" val={d.assurePrenom} onChange={v=>set('assurePrenom',v)}/>
+          <Champ label="Adresse assuré" val={d.assureAdresse} onChange={v=>set('assureAdresse',v)} full/>
+          <Champ label="Code postal" val={d.assureCP} onChange={v=>set('assureCP',v)} mono/>
+          <Champ label="Ville" val={d.assureVille} onChange={v=>set('assureVille',v)}/>
+          <Champ label="Téléphone assuré" val={d.assureTel} onChange={v=>set('assureTel',v)}/>
+        </div>
+        <div className="section-title">Prescripteur</div>
+        <div className="fg fg-2">
+          <div className="fs full">
+            <label>Sélectionner depuis la liste</label>
+            <select onChange={e=>{const p=PRESCRIPTEURS.find(x=>x.rpps===e.target.value);if(p){set('prescripteurNom',p.nom);set('prescripteurRPPS',p.rpps);set('prescripteurSpecialite',p.specialite);}}}>
+              <option value="">— Saisir manuellement ou choisir —</option>
+              {PRESCRIPTEURS.map(p=><option key={p.rpps} value={p.rpps}>{p.nom} — {p.specialite}</option>)}
+            </select>
+          </div>
+          <Champ label="Nom prescripteur *" val={d.prescripteurNom} onChange={v=>set('prescripteurNom',v)} placeholder="Dr. ..."/>
+          <Champ label="N° RPPS *" val={d.prescripteurRPPS} onChange={v=>set('prescripteurRPPS',v)} placeholder="10012345678" mono/>
+          <Champ label="Spécialité" val={d.prescripteurSpecialite} onChange={v=>set('prescripteurSpecialite',v)}/>
+          <Champ label="Date ordonnance" val={d.dateOrdonnance} onChange={v=>set('dateOrdonnance',v)} type="date"/>
+        </div>
+      </div>
+    ),
+
+    // STEP 1 — Eval 1+2
+    () => (
+      <div>
+        <div className="info-box">Étape 1 de la fiche officielle HAS — Évaluation des besoins du patient.</div>
+        <div className="section-title">1 — Facteurs personnels</div>
+        <div className="fg fg-4">
+          <Champ label="Âge" val={d.age} onChange={v=>set('age',v)} placeholder="65"/>
+          <Champ label="Poids (kg)" val={d.poids} onChange={v=>set('poids',v)} placeholder="70"/>
+          <Champ label="Taille (cm)" val={d.taille} onChange={v=>set('taille',v)} placeholder="170"/>
+          <Sel label="Latéralité" val={d.lateralite} onChange={v=>set('lateralite',v)} opts={['Droitier','Gaucher','Ambidextre']}/>
+          <Champ label="Main dominante (avant handicap)" val={d.mainDominante} onChange={v=>set('mainDominante',v)} full/>
+          <Champ label="Capacités physiques" val={d.capPhysiques} onChange={v=>set('capPhysiques',v)} placeholder="Décrivez les capacités de préhension, force, endurance..." full rows={2}/>
+          <div className="fs full">
+            <label>Capacités cognitives permettant la conduite du VPH</label>
+            <div className="radio-group">
+              {['Oui','Non','À évaluer'].map(v=><Radio key={v} label={v} value={v} current={d.capCognitives} onChange={v=>set('capCognitives',v)}/>)}
+            </div>
+          </div>
+          <Champ label="Comorbidités" val={d.comorbidites} onChange={v=>set('comorbidites',v)} placeholder="Diabète, HTA, problèmes respiratoires..." full rows={2}/>
+        </div>
+
+        <div className="section-title">2 — Usage et activités</div>
+        <div className="fg fg-2">
+          <div className="fs">
+            <label>Première acquisition de VPH ?</label>
+            <div className="radio-group"><Radio label="Oui" value="Oui" current={d.premiereAcquisition} onChange={v=>set('premiereAcquisition',v)}/><Radio label="Non" value="Non" current={d.premiereAcquisition} onChange={v=>set('premiereAcquisition',v)}/></div>
+          </div>
+          <div className="fs">
+            <label>Renouvellement ou cumul de VPH ?</label>
+            <div className="radio-group"><Radio label="Oui" value="Oui" current={d.renouvellement} onChange={v=>set('renouvellement',v)}/><Radio label="Non" value="Non" current={d.renouvellement} onChange={v=>set('renouvellement',v)}/></div>
+          </div>
+          {d.renouvellement==='Oui'&&<Champ label="Si oui : catégorie, date d'acquisition, modèle du VPH possédé" val={d.vphPossede} onChange={v=>set('vphPossede',v)} full placeholder="Ex: FRM, 2021, marque X modèle Y"/>}
+          <Champ label="Description du projet d'acquisition" val={d.projetAcquisition} onChange={v=>set('projetAcquisition',v)} full rows={2} placeholder="Décrivez le projet..."/>
+          <div className="fs full">
+            <label>Types d'activités réalisées ou envisagées avec le VPH</label>
+            <div className="cb-group">
+              <CB label="Vie quotidienne" checked={d.actVieQuotidienne} onChange={v=>set('actVieQuotidienne',v)}/>
+              <CB label="Travail" checked={d.actTravail} onChange={v=>set('actTravail',v)}/>
+              <CB label="Loisirs" checked={d.actLoisirs} onChange={v=>set('actLoisirs',v)}/>
+            </div>
+          </div>
+          <Champ label="Temps d'utilisation par jour ou par semaine" val={d.tempsUtilisation} onChange={v=>set('tempsUtilisation',v)} placeholder="Ex: 8h/jour" full/>
+          <div className="fs full">
+            <label>Types de déplacements</label>
+            <div className="cb-group">
+              <CB label="Intérieur" checked={d.deplInterieur} onChange={v=>set('deplInterieur',v)}/>
+              <CB label="Extérieur" checked={d.deplExterieur} onChange={v=>set('deplExterieur',v)}/>
+              <CB label="Tout-terrain" checked={d.deplTerrain} onChange={v=>set('deplTerrain',v)}/>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+
+    // STEP 2 — Eval 3+4
+    () => (
+      <div>
+        <div className="section-title">3 — Facteurs environnementaux</div>
+        <div className="fg fg-2">
+          <div className="fs full">
+            <label>Lieu de vie</label>
+            <div className="cb-group">
+              <CB label="Appartement" checked={d.lieuVieAppart} onChange={v=>set('lieuVieAppart',v)}/>
+              <CB label="Maison" checked={d.lieuVieMaison} onChange={v=>set('lieuVieMaison',v)}/>
+              <CB label="Établissement méd.-soc. / EHPAD" checked={d.lieuVieEtab} onChange={v=>set('lieuVieEtab',v)}/>
+            </div>
+          </div>
+          <Champ label="Description du lieu de vie (superficie, agencement...)" val={d.descLieu} onChange={v=>set('descLieu',v)} full rows={2}/>
+          <Champ label="Accessibilité intérieure et extérieure" val={d.accessibilite} onChange={v=>set('accessibilite',v)} full rows={2} placeholder="Largeurs des portes, seuils, plan incliné..."/>
+          <div className="fs">
+            <label>Présence d'escaliers</label>
+            <div className="radio-group"><Radio label="Oui" value="Oui" current={d.escaliers} onChange={v=>set('escaliers',v)}/><Radio label="Non" value="Non" current={d.escaliers} onChange={v=>set('escaliers',v)}/></div>
+          </div>
+          <div className="fs">
+            <label>Présence d'ascenseur</label>
+            <div className="radio-group"><Radio label="Oui" value="Oui" current={d.ascenseur} onChange={v=>set('ascenseur',v)}/><Radio label="Non" value="Non" current={d.ascenseur} onChange={v=>set('ascenseur',v)}/></div>
+          </div>
+          <div className="fs">
+            <label>Terrains accidentés / côtes dans le quartier</label>
+            <div className="radio-group"><Radio label="Oui" value="Oui" current={d.terrainsAccidentes} onChange={v=>set('terrainsAccidentes',v)}/><Radio label="Non" value="Non" current={d.terrainsAccidentes} onChange={v=>set('terrainsAccidentes',v)}/></div>
+          </div>
+          <div className="fs full">
+            <label>Environnement humain au domicile</label>
+            <div className="cb-group">
+              <CB label="Personne seule" checked={d.seul} onChange={v=>set('seul',v)}/>
+              <CB label="En couple" checked={d.couple} onChange={v=>set('couple',v)}/>
+              <CB label="En famille" checked={d.famille} onChange={v=>set('famille',v)}/>
+              <CB label="Auxiliaires de vie / Aidants" checked={d.auxVie} onChange={v=>set('auxVie',v)}/>
+            </div>
+          </div>
+          <div className="fs">
+            <label>Activité professionnelle</label>
+            <div className="radio-group"><Radio label="Oui" value="Oui" current={d.activitePro} onChange={v=>set('activitePro',v)}/><Radio label="Non" value="Non" current={d.activitePro} onChange={v=>set('activitePro',v)}/></div>
+          </div>
+          <div className="fs">
+            <label>Déplacement sur le lieu de travail</label>
+            <div className="radio-group"><Radio label="Oui" value="Oui" current={d.deplTravail} onChange={v=>set('deplTravail',v)}/><Radio label="Non" value="Non" current={d.deplTravail} onChange={v=>set('deplTravail',v)}/></div>
+          </div>
+          <div className="fs">
+            <label>Conduite d'un véhicule motorisé</label>
+            <div className="radio-group">
+              <Radio label="Non" value="Non" current={d.conduiteVehicule} onChange={v=>set('conduiteVehicule',v)}/>
+              <Radio label="Oui — par l'usager" value="Oui" current={d.conduiteVehicule} onChange={v=>set('conduiteVehicule',v)}/>
+              <Radio label="Oui — par un tiers" value="Tiers" current={d.conduiteVehicule} onChange={v=>set('conduiteVehicule',v)}/>
+            </div>
+          </div>
+          <div className="fs">
+            <label>Utilisation des transports en commun</label>
+            <div className="radio-group"><Radio label="Oui" value="Oui" current={d.transportsCommun} onChange={v=>set('transportsCommun',v)}/><Radio label="Non" value="Non" current={d.transportsCommun} onChange={v=>set('transportsCommun',v)}/></div>
+          </div>
+        </div>
+
+        <div className="section-title">4 — Situation de santé</div>
+        <Champ label="Pathologie, anamnèse, caractère évolutif, comorbidités, problématique respiratoire..." val={d.situationSante} onChange={v=>set('situationSante',v)} full rows={4} placeholder="Décrivez la situation médicale complète du patient..."/>
+
+        <div className="section-title">Synthèse de la demande & catégorie VPH envisagée</div>
+        <div className="fg fg-2">
+          <div className="fs full">
+            <label>Catégorie de VPH envisagée *</label>
+            <select value={d.typeVPH||''} onChange={e=>set('typeVPH',e.target.value)}>
+              <option value="">— Sélectionner le type de VPH —</option>
+              <optgroup label="VPH Manuels"><option value="FRM">FRM — Fauteuil roulant modulaire (propulsion manuelle)</option><option value="FRMC">FRMC — Modulaire configurable</option><option value="FRMA">FRMA — Modulaire actif</option><option value="FRMS">FRMS — Modulaire sport</option><option value="FRMP">FRMP — Modulaire multi-position</option><option value="FRMV">FRMV — Modulaire verticalisation</option></optgroup>
+              <optgroup label="VPH Électriques"><option value="FRE_A">FRE classe A — Électrique</option><option value="FRE_B">FRE classe B — Électrique</option><option value="FRE_C">FRE classe C — Électrique</option><option value="FREP_A">FREP classe A — Électrique multi-position</option><option value="FREP_B">FREP classe B — Électrique multi-position</option><option value="FREP_C">FREP classe C — Électrique multi-position</option><option value="FREV">FREV — Électrique verticalisation</option></optgroup>
+              <optgroup label="Autres"><option value="SCO_A+">SCO classe A+ — Scooter</option><option value="SCO_B">SCO classe B — Scooter</option><option value="SCO_C">SCO classe C — Scooter</option><option value="CYC">CYC — Cycle/Tricycle modulaire</option><option value="POU_MRE">POU_MRE — Poussette modulaire multiréglable</option></optgroup>
+            </select>
+          </div>
+          <Champ label="Synthèse de la demande" val={d.syntheseDemande} onChange={v=>set('syntheseDemande',v)} full rows={3} placeholder="Synthèse globale justifiant le choix du VPH..."/>
+        </div>
+        <div className="pdf-actions">
+          <button className="btn btn-green" onClick={()=>generateEvaluation(d)}>📄 Générer Fiche Évaluation PDF</button>
+        </div>
+      </div>
+    ),
+
+    // STEP 3 — Préconisation
+    () => (
+      <div>
+        <div className="info-box">Étape 2 — Fiche de préconisation (rédigée sur la base de l'évaluation des besoins).</div>
+        {!d.typeVPH && <div className="alert alert-amber">⚠️ Aucune catégorie VPH sélectionnée — retournez à l'étape précédente.</div>}
+        {d.typeVPH && <div className="alert alert-green">✅ Catégorie VPH sélectionnée : <strong>{d.typeVPH}</strong></div>}
+
+        <div className="section-title">Mesures anthropométriques</div>
+        <div className="fg fg-3">
+          <Champ label="Taille (cm)" val={d.taille} onChange={v=>set('taille',v)} placeholder="170"/>
+          <Champ label="Poids (kg)" val={d.poids} onChange={v=>set('poids',v)} placeholder="70"/>
+          <Sel label="Latéralité" val={d.lateralite} onChange={v=>set('lateralite',v)} opts={['Droitier','Gaucher','Ambidextre']}/>
+        </div>
+
+        <div className="section-title">Caractéristiques du VPH préconisé</div>
+        <div className="fg fg-2">
+          <Champ label="Mode de propulsion" val={d.modePropulsion} onChange={v=>set('modePropulsion',v)} placeholder="Ex: podale avec direction manuelle, double main courante..."/>
+          <Champ label="Châssis" val={d.chassis} onChange={v=>set('chassis',v)} placeholder="Pliant, fixe..."/>
+          <Champ label="Dossier" val={d.dossier} onChange={v=>set('dossier',v)} placeholder="Inclinable, rigide, souple, réglable..."/>
+          <Champ label="Repose-pied" val={d.reposePied} onChange={v=>set('reposePied',v)} placeholder="Escamotable, fixe, potence centrale..."/>
+          <Champ label="Accoudoir" val={d.accoudoir} onChange={v=>set('accoudoir',v)} placeholder="Escamotable, réglable..."/>
+          <Champ label="Siège" val={d.siege} onChange={v=>set('siege',v)} placeholder="Rigide, souple, inclinable..."/>
+          <Champ label="Roues" val={d.roues} onChange={v=>set('roues',v)} placeholder="Diamètre, bandage, pneumatique, flasque de protection..."/>
+          <Champ label="Système de conduite" val={d.systemeConduite} onChange={v=>set('systemeConduite',v)} placeholder="Type, protection de main..."/>
+        </div>
+
+        <div className="section-title">Produits d'aide à la posture (PAP)</div>
+        <div style={{fontSize:12,color:'var(--text2)',marginBottom:10}}>Cochez les PAP nécessaires :</div>
+        {PAP_ITEMS.map(pap=>(<div key={pap.forfait} style={{marginBottom:10}}>
+          <div style={{fontSize:12,fontWeight:600,color:'var(--text)',marginBottom:6}}>{pap.forfait}</div>
+          <div className="cb-group">
+            {pap.sous.map(s=><CB key={s} label={s} checked={(d.papSelectionnes||[]).includes(s)} onChange={()=>togPAP(s)}/>)}
+          </div>
+        </div>))}
+      </div>
+    ),
+
+    // STEP 4 — Adjonctions
+    () => (
+      <div>
+        <div className="info-box">Sélectionnez les adjonctions inscrites à la nomenclature LPP nécessaires pour ce patient.</div>
+        <div className="section-title">Adjonctions facturables (nomenclature LPP)</div>
+        <table className="adj-table">
+          <thead><tr><th style={{width:30}}>✓</th><th>Désignation</th><th>Code LPP</th></tr></thead>
+          <tbody>
+            {ADJONCTIONS.map(a=>(
+              <tr key={a.code} style={{cursor:'pointer'}} onClick={()=>togAdj(a.code)}>
+                <td><span style={{fontSize:16,color:(d.adjonctions||[]).includes(a.code)?'var(--green)':'var(--text3)'}}>{(d.adjonctions||[]).includes(a.code)?'☑':'☐'}</span></td>
+                <td>{a.nom}</td>
+                <td><span className="lpp-chip">{a.code}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="section-title" style={{marginTop:18}}>Adjonctions sur devis (hors nomenclature)</div>
+        <div className="info-box amber">À compléter uniquement si le besoin de compensation du handicap n'est pas couvert par les adjonctions de la nomenclature.</div>
+        {(d.adjDevis||[]).map((r,i)=>(
+          <div key={i} className="fg fg-2" style={{marginBottom:10,padding:'12px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)'}}>
+            <div style={{fontSize:12,fontWeight:600,color:'var(--text2)',gridColumn:'1/-1'}}>Option sur devis #{i+1}</div>
+            <Champ label="Description de l'option ou adjonction" val={r.desc} onChange={v=>setAdjDevis(i,'desc',v)} placeholder="Description technique..."/>
+            <Champ label="Justification du besoin (compensation handicap)" val={r.justif} onChange={v=>setAdjDevis(i,'justif',v)} placeholder="Justification médicale..."/>
+          </div>
+        ))}
+        <div className="pdf-actions">
+          <button className="btn btn-primary" onClick={()=>generatePreconisation(d)}>📄 Générer Fiche Préconisation PDF</button>
+        </div>
+      </div>
+    ),
+
+    // STEP 5 — Documents (rendu via composant dédié pour respecter les règles des hooks React)
+    () => <StepDocs d={d} set={set} />,
+
+    // STEP 6 — Récap
+    () => (
+      <div>
+        <div className="alert alert-green" style={{marginBottom:16}}>✅ Dossier prêt à être enregistré</div>
+        <div className="section-title">Statut du dossier</div>
+        <select value={d.statut} onChange={e=>set('statut',e.target.value)} style={{fontSize:15,fontWeight:600,marginBottom:16}}>
+          {STATUTS.map(s=><option key={s}>{s}</option>)}
+        </select>
+        <div className="section-title">Récapitulatif</div>
+        <div className="fg fg-2">
+          {[
+            ['👤 Patient',`${d.nom} ${d.prenom}`],
+            ['📍 Adresse',`${d.adresse}${d.codePostal?' — '+d.codePostal:''} ${d.ville}`],
+            ['🔢 N° SS',d.nsecu],
+            ['👨‍⚕️ Prescripteur',d.prescripteurNom],
+            ['📋 N° RPPS',d.prescripteurRPPS],
+            ['♿ Type VPH',d.typeVPH],
+            ['📏 Taille / Poids',`${d.taille||'?'} cm / ${d.poids||'?'} kg`],
+            ['🔧 Adjonctions',`${(d.adjonctions||[]).length} sélectionnée(s)`],
+            ['🩹 PAP',`${(d.papSelectionnes||[]).length} sélectionné(s)`],
+            ['📄 Fichiers',`${(d.fichiers||[]).length} document(s)`],
+            ['✍️ Signé',d.signature?'Oui ✅':'Non ❌'],
+            ['📮 DEP envoyée',fmtDate(d.dateDepDEP)],
+          ].map(([l,v])=>(
+            <div key={l} style={{padding:'10px 13px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)'}}>
+              <div style={{fontSize:11,color:'var(--text2)',marginBottom:2}}>{l}</div>
+              <div style={{fontSize:13,fontWeight:500,wordBreak:'break-all'}}>{v||'—'}</div>
+            </div>
+          ))}
+        </div>
+        <div className="section-title" style={{marginTop:16}}>Notes internes</div>
+        <Champ label="" val={d.notes} onChange={v=>set('notes',v)} full rows={3} placeholder="Observations, points d'attention..."/>
+        <div className="pdf-actions">
+          <button className="btn btn-green" onClick={()=>generateEvaluation(d)}>📄 Fiche Évaluation</button>
+          <button className="btn btn-primary" onClick={()=>generatePreconisation(d)}>📄 Fiche Préconisation</button>
+        </div>
+      </div>
+    ),
+  ];
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal modal-wide">
+        <div className="modal-header">
+          <div>
+            <div className="modal-title">{existing?'✏️ Modifier le dossier':'➕ Nouveau dossier VPH'}</div>
+            <div style={{fontSize:12,color:'var(--text2)',marginTop:1}}>{d.nom||'…'} {d.prenom||''} {d.typeVPH?`— ${d.typeVPH}`:''}</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          {/* Stepper */}
+          <div className="stepper">
+            {STEPS.map((label,i)=>(
+              <div key={i} className="step-item">
+                <div className="step-col" style={{cursor:'pointer'}} onClick={()=>setStep(i)}>
+                  <div className={`step-circle ${i<step?'done':i===step?'active':'pending'}`}>{i<step?'✓':i+1}</div>
+                  <div className="step-label">{label}</div>
+                </div>
+                {i<STEPS.length-1&&<div className={`step-line ${i<step?'done':''}`}/>}
+              </div>
+            ))}
+          </div>
+          {steps[step]()}
+        </div>
+        <div className="modal-footer">
+          {step>0&&<button className="btn btn-secondary" onClick={()=>setStep(s=>s-1)}>← Précédent</button>}
+          {step<STEPS.length-1
+            ?<button className="btn btn-primary" onClick={()=>setStep(s=>s+1)}>Suivant →</button>
+            :<button className="btn btn-green btn-lg" onClick={()=>onSave(d)}>💾 Enregistrer</button>
+          }
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Détail dossier ─────────────────────────────────────────────────────────────
+const DossierDetail = ({dossier, onClose, onEdit, onStatusChange, onDelete}) => {
+  const [tab, setTab] = useState('suivi');
+  const PROCESS = [
+    {label:'Évaluation des besoins réalisée'},
+    {label:'Fiche de préconisation rédigée'},
+    {label:'DEP envoyée à la CPAM'},
+    {label:'Attente réponse CPAM (15 jours)'},
+    {label:'Accord CPAM reçu'},
+    {label:'Commande passée au fournisseur'},
+  ];
+  const si = STATUTS.indexOf(dossier.statut);
+  return (
+    <div className="modal-overlay">
+      <div className="modal modal-wide">
+        <div className="modal-header">
+          <div>
+            <div className="modal-title">📁 {dossier.nom} {dossier.prenom}</div>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginTop:4}}>
+              <span className={`badge ${STATUT_STYLES[dossier.statut]}`}>{dossier.statut}</span>
+              {dossier.typeVPH&&<span className="lpp-chip">{dossier.typeVPH}</span>}
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn btn-secondary btn-sm" onClick={onEdit}>✏️ Modifier</button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div className="modal-body">
+          <div className="tabs">
+            {[['suivi','📊 Suivi'],['infos','👤 Infos'],['eval','📝 Évaluation'],['preco','♿ Préconisation'],['docs','📄 Docs'],['actions','⚡ Actions']].map(([k,l])=>(
+              <button key={k} className={`tab ${tab===k?'active':''}`} onClick={()=>setTab(k)}>{l}</button>
+            ))}
+          </div>
+
+          {tab==='suivi'&&(
+            <div>
+              {dossier.statut==='En attente CPAM'&&dossier.dateDepDEP&&<div style={{marginBottom:14}}><Countdown dateEnvoi={dossier.dateDepDEP}/></div>}
+              {PROCESS.map((p,i)=>{
+                const done=i<si; const active=i===si;
+                return(
+                  <div key={i} className="process-step">
+                    <div className={`process-step-num ${done?'done':active?'active':'pending'}`}>{done?'✓':i+1}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:600}}>{p.label}</div>
+                      {i===2&&dossier.dateDepDEP&&<div style={{fontSize:11,color:'var(--text2)'}}>Envoyée le {fmtDate(dossier.dateDepDEP)}</div>}
+                      {i===4&&dossier.noAccordCPAM&&<div style={{fontSize:11,color:'var(--text2)'}}>N° {dossier.noAccordCPAM} — {fmtDate(dossier.dateAccordCPAM)}</div>}
+                    </div>
+                    {active&&si<STATUTS.length-1&&(
+                      <button className="btn btn-primary btn-sm" onClick={()=>onStatusChange(dossier.id,STATUTS[si+1])}>Valider →</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {tab==='infos'&&(
+            <div className="fg fg-2">
+              {[
+                ['N° SS',dossier.nsecu],['Naissance',fmtDate(dossier.dateNaissance)],
+                ['Adresse',dossier.adresse],['Code postal',dossier.codePostal],
+                ['Ville',dossier.ville],['Téléphone',dossier.tel],
+                ['Email',dossier.email],['Mutuelle',dossier.mutuelle],
+                ['Prescripteur',dossier.prescripteurNom],['N° RPPS',dossier.prescripteurRPPS],
+                ['Spécialité',dossier.prescripteurSpecialite],['Ordonnance du',fmtDate(dossier.dateOrdonnance)],
+                ['Type VPH',dossier.typeVPH],['Prise en charge',dossier.priseEnCharge],
+                ['Signé',dossier.signature?'Oui ✅':'Non ❌'],['Créé le',fmtDate(dossier.dateCreation)],
+              ].map(([l,v])=>(
+                <div key={l} style={{padding:'9px 12px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',marginBottom:2}}>{l}</div>
+                  <div style={{fontSize:13,fontWeight:500,wordBreak:'break-all'}}>{v||'—'}</div>
+                </div>
+              ))}
+              {dossier.notes&&<div style={{gridColumn:'1/-1',padding:'9px 12px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)'}}>
+                <div style={{fontSize:10,color:'var(--text2)',marginBottom:2}}>Notes</div>
+                <div style={{fontSize:13}}>{dossier.notes}</div>
+              </div>}
+            </div>
+          )}
+
+          {tab==='eval'&&(
+            <div>
+              <div className="fg fg-2">
+                {[
+                  ['Âge',dossier.age],['Poids',dossier.poids&&dossier.poids+' kg'],
+                  ['Taille',dossier.taille&&dossier.taille+' cm'],['Latéralité',dossier.lateralite],
+                  ['Capacités cognitives',dossier.capCognitives],
+                ].map(([l,v])=>(
+                  <div key={l} style={{padding:'9px 12px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)'}}>
+                    <div style={{fontSize:10,color:'var(--text2)',marginBottom:2}}>{l}</div>
+                    <div style={{fontSize:13,fontWeight:500}}>{v||'—'}</div>
+                  </div>
+                ))}
+              </div>
+              {[['Capacités physiques',dossier.capPhysiques],['Comorbidités',dossier.comorbidites],
+                ['Projet acquisition',dossier.projetAcquisition],['Situation de santé',dossier.situationSante],
+                ['Synthèse',dossier.syntheseDemande]].map(([l,v])=>v?(
+                <div key={l} style={{marginBottom:10,padding:'9px 12px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',marginBottom:2}}>{l}</div>
+                  <div style={{fontSize:13}}>{v}</div>
+                </div>):null)}
+              <div className="pdf-actions"><button className="btn btn-green" onClick={()=>generateEvaluation(dossier)}>📄 Fiche Évaluation PDF</button></div>
+            </div>
+          )}
+
+          {tab==='preco'&&(
+            <div>
+              <div className="fg fg-2">
+                {[['Mode propulsion',dossier.modePropulsion],['Châssis',dossier.chassis],
+                  ['Dossier',dossier.dossier],['Repose-pied',dossier.reposePied],
+                  ['Accoudoir',dossier.accoudoir],['Siège',dossier.siege],
+                  ['Roues',dossier.roues],['Système de conduite',dossier.systemeConduite],
+                ].map(([l,v])=>(
+                  <div key={l} style={{padding:'9px 12px',background:'var(--surface2)',borderRadius:8,border:'1px solid var(--border)'}}>
+                    <div style={{fontSize:10,color:'var(--text2)',marginBottom:2}}>{l}</div>
+                    <div style={{fontSize:13,fontWeight:500}}>{v||'—'}</div>
+                  </div>
+                ))}
+              </div>
+              {(dossier.papSelectionnes||[]).length>0&&<div style={{marginTop:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text2)',marginBottom:6}}>PAP sélectionnés</div>
+                <div className="cb-group">{dossier.papSelectionnes.map(p=><span key={p} className="cb-item checked">☑ {p}</span>)}</div>
+              </div>}
+              {(dossier.adjonctions||[]).length>0&&<div style={{marginTop:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text2)',marginBottom:6}}>Adjonctions</div>
+                {dossier.adjonctions.map(c=>{const a=ADJONCTIONS.find(x=>x.code===c);return a?(<div key={c} style={{display:'flex',justifyContent:'space-between',padding:'6px 10px',background:'var(--surface2)',borderRadius:6,border:'1px solid var(--border)',marginBottom:4,fontSize:12}}><span>{a.nom}</span><span className="lpp-chip">{a.code}</span></div>):null})}
+              </div>}
+              <div className="pdf-actions"><button className="btn btn-primary" onClick={()=>generatePreconisation(dossier)}>📄 Fiche Préconisation PDF</button></div>
+            </div>
+          )}
+
+          {tab==='docs'&&(
+            <div>
+              {(dossier.fichiers||[]).length===0
+                ?<div style={{color:'var(--text2)',fontSize:13}}>Aucun document téléchargé.</div>
+                :<div style={{display:'flex',flexWrap:'wrap',gap:8}}>{dossier.fichiers.map((f,i)=>(
+                  <div key={i} className="file-chip" style={{padding:'8px 12px'}}>
+                    📄 <div><div style={{fontWeight:600}}>{f.nom}</div><div style={{fontSize:10,color:'var(--text2)'}}>{f.type}</div></div>
+                  </div>
+                ))}</div>
+              }
+              <div className="pdf-actions">
+                {dossier.circuit==='simple'
+                ? <button className="btn btn-primary btn-sm" onClick={()=>generateDAP(dossier)}>📄 Demande DAP PDF</button>
+                : <><button className="btn btn-green btn-sm" onClick={()=>generateEvaluation(dossier)}>📝 Fiche Évaluation</button>
+                   <button className="btn btn-primary btn-sm" onClick={()=>generatePreconisation(dossier)}>📋 Fiche Préconisation</button></>
+              }
+              </div>
+            </div>
+          )}
+
+          {tab==='actions'&&(
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              <div style={{fontSize:12,fontWeight:700,color:'var(--text2)',marginBottom:4}}>Changer le statut</div>
+              <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
+                {STATUTS.map(s=><button key={s} className={`btn btn-sm ${dossier.statut===s?'btn-primary':'btn-secondary'}`} onClick={()=>onStatusChange(dossier.id,s)}>{s}</button>)}
+              </div>
+              <button className="btn btn-amber" style={{marginTop:8}} onClick={()=>{
+                const subj=encodeURIComponent(`Relance DEP - ${dossier.nom} ${dossier.prenom} - N°SS: ${dossier.nsecu}`);
+                const body=encodeURIComponent(`Madame, Monsieur,\n\nNous vous contactons au sujet de la Demande d'Entente Préalable envoyée le ${fmtDate(dossier.dateDepDEP)} pour le patient ${dossier.nom} ${dossier.prenom} (N° SS: ${dossier.nsecu}) concernant un ${dossier.typeVPH||'VPH'}.\n\nN'ayant pas reçu de réponse dans le délai légal de 15 jours, nous vous relançons afin d'obtenir une décision.\n\nCordialement,\nMEDITEC — Service PSDM`);
+                window.open(`mailto:?subject=${subj}&body=${body}`);
+              }}>📧 Générer email relance CPAM</button>
+              <div style={{borderTop:'1px solid var(--border)',marginTop:8,paddingTop:12}}>
+                <div style={{fontSize:11,color:'var(--text3)',marginBottom:8}}>⚠️ Zone dangereuse</div>
+                <button className="btn btn-red" onClick={()=>{
+                  if(window.confirm(`Supprimer définitivement le dossier de ${dossier.nom} ${dossier.prenom} ?\n\nCette action est irréversible.`)){
+                    onDelete(dossier.id);
+                  }
+                }}>🗑 Supprimer ce dossier</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+const Dashboard = ({dossiers,onNew,onNewSimple,onView}) => {
+  const alerts=dossiers.filter(d=>d.statut==='En attente CPAM'&&d.dateDepDEP&&daysUntil(addDays(d.dateDepDEP,10))<=0);
+  const stats=STATUTS.reduce((a,s)=>{a[s]=dossiers.filter(d=>d.statut===s).length;return a},{});
+  const colors=['blue','cyan','amber','purple','green','commande'];
+  const icons=['📋','🔬','📮','⏳','✅','📦'];
+  return (
+    <div>
+      <div className="page-header">
+        <div><div className="page-title">Tableau de bord</div><div className="page-subtitle">{dossiers.length} dossier(s) au total</div></div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <button className="btn btn-primary btn-lg" onClick={onNew}>➕ Nouveau dossier VPH (circuit complet)</button>
+          <button className="btn btn-secondary btn-lg" onClick={onNewSimple}>➕ Circuit simplifié (FMP/FMPR/BASE)</button>
+        </div>
+      </div>
+      {alerts.map(d=>(
+        <div key={d.id} className="alert alert-red" style={{cursor:'pointer',marginBottom:8}} onClick={()=>onView(d)}>
+          ⚠️ <strong>RELANCE CPAM :</strong> {d.nom} {d.prenom} — DEP du {fmtDate(d.dateDepDEP)} — Plus de 10 jours sans réponse
+        </div>
+      ))}
+      <div className="stats-grid">
+        {STATUTS.map((s,i)=>(
+          <div key={s} className={`stat-card ${colors[i]}`}>
+            <div style={{fontSize:18,marginBottom:5}}>{icons[i]}</div>
+            <div className="stat-value">{stats[s]||0}</div>
+            <div className="stat-label">{s}</div>
+          </div>
+        ))}
+      </div>
+      {dossiers.filter(d=>d.statut==='En attente CPAM'&&d.dateDepDEP).map(d=>(
+        <div key={d.id} style={{marginBottom:10,cursor:'pointer'}} onClick={()=>onView(d)}>
+          <div style={{fontSize:11,color:'var(--text2)',marginBottom:4}}><strong>{d.nom} {d.prenom}</strong> — {d.typeVPH}</div>
+          <Countdown dateEnvoi={d.dateDepDEP}/>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Liste dossiers ─────────────────────────────────────────────────────────────
+const Liste = ({dossiers,onNew,onNewSimple,onView,onEdit,onDelete}) => {
+  const [filter,setFilter]=useState('Tous');
+  const [search,setSearch]=useState('');
+  const filtered=dossiers.filter(d=>{
+    const ms=filter==='Tous'||d.statut===filter;
+    const ms2=!search||`${d.nom} ${d.prenom} ${d.nsecu} ${d.typeVPH}`.toLowerCase().includes(search.toLowerCase());
+    return ms&&ms2;
+  });
+  return (
+    <div>
+      <div className="page-header">
+        <div><div className="page-title">Dossiers clients</div><div className="page-subtitle">{filtered.length} dossier(s)</div></div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <button className="btn btn-primary" onClick={onNew}>➕ Circuit complet</button>
+          <button className="btn btn-secondary" onClick={onNewSimple}>➕ Circuit simplifié</button>
+        </div>
+      </div>
+      <div style={{display:'flex',gap:10,marginBottom:14,flexWrap:'wrap'}}>
+        <div className="search-bar" style={{flex:1,maxWidth:360}}>
+          <span className="search-icon">🔍</span>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nom, N°SS, type VPH..."/>
+        </div>
+      </div>
+      <div className="filters">
+        {['Tous',...STATUTS].map(s=><div key={s} className={`filter-pill ${filter===s?'active':''}`} onClick={()=>setFilter(s)}>{s}</div>)}
+      </div>
+      <div className="card" style={{padding:0}}>
+        {filtered.length===0
+          ?<div className="empty-state"><div className="empty-icon">📂</div><div>Aucun dossier trouvé</div></div>
+          :<div className="table-wrap">
+            <table>
+              <thead><tr><th>Patient</th><th>N° SS</th><th>Type VPH</th><th>Statut</th><th>Créé le</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filtered.map(d=>(
+                  <tr key={d.id} style={{cursor:'pointer'}} onClick={()=>onView(d)}>
+                    <td><strong>{d.nom} {d.prenom}</strong></td>
+                    <td><span style={{fontFamily:'DM Mono',fontSize:11,color:'var(--text2)'}}>{d.nsecu||'—'}</span></td>
+                    <td>
+                      {d.typeVPH?<span className="lpp-chip">{d.typeVPH}</span>:'—'}
+                      {d.circuit==='simple'&&<span style={{marginLeft:5,fontSize:10,background:'rgba(6,182,212,.15)',color:'var(--cyan)',padding:'2px 6px',borderRadius:4,border:'1px solid rgba(6,182,212,.2)'}}>
+                        {d.motifSimple==='renouvellement'?'Renouvellement':'Hors HAS'}
+                      </span>}
+                    </td>
+                    <td><span className={`badge ${STATUT_STYLES[d.statut]}`}>{d.statut}</span></td>
+                    <td style={{color:'var(--text2)',fontSize:12}}>{fmtDate(d.dateCreation)}</td>
+                    <td onClick={e=>e.stopPropagation()}>
+                      <div style={{display:'flex',gap:5}}>
+                        <button className="btn btn-secondary btn-sm" onClick={()=>onView(d)}>👁</button>
+                        <button className="btn btn-secondary btn-sm" onClick={()=>onEdit(d)}>✏️</button>
+                        <button className="btn btn-red btn-sm" title="Supprimer" onClick={()=>{
+                          if(window.confirm(`Supprimer le dossier de ${d.nom} ${d.prenom} ?\n\nCette action est irréversible.`)){
+                            onDelete(d.id);
+                          }
+                        }}>🗑</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  );
+};
+
+// ── Relances ───────────────────────────────────────────────────────────────────
+const Relances = ({dossiers,onView}) => {
+  const alerts=dossiers.filter(d=>d.statut==='En attente CPAM'&&d.dateDepDEP&&daysUntil(addDays(d.dateDepDEP,10))<=0);
+  return (
+    <div>
+      <div className="page-header">
+        <div><div className="page-title">Relances CPAM</div><div className="page-subtitle">{alerts.length} dossier(s) à relancer</div></div>
+      </div>
+      {alerts.length===0
+        ?<div className="empty-state"><div className="empty-icon">🎉</div><div>Aucune relance nécessaire</div></div>
+        :alerts.map(d=>(
+          <div key={d.id} className="card" style={{marginBottom:12,cursor:'pointer',borderColor:'rgba(239,68,68,.4)'}} onClick={()=>onView(d)}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:10}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:15}}>{d.nom} {d.prenom}</div>
+                <div style={{color:'var(--text2)',fontSize:13}}>{d.typeVPH||'VPH non renseigné'}</div>
+                <div style={{color:'var(--text3)',fontSize:12}}>DEP du {fmtDate(d.dateDepDEP)}</div>
+              </div>
+              <button className="btn btn-amber" onClick={e=>{e.stopPropagation();
+                const subj=encodeURIComponent(`Relance DEP - ${d.nom} ${d.prenom}`);
+                const body=encodeURIComponent(`Bonjour,\n\nRelance concernant la DEP du ${fmtDate(d.dateDepDEP)} pour ${d.nom} ${d.prenom} (N°SS: ${d.nsecu}).\n\nCordialement, MEDITEC`);
+                window.open(`mailto:?subject=${subj}&body=${body}`);
+              }}>📧 Email de relance</button>
+            </div>
+            <div style={{marginTop:12}}><Countdown dateEnvoi={d.dateDepDEP}/></div>
+          </div>
+        ))
+      }
+    </div>
+  );
+};
+
+// ── Page Paramètres ────────────────────────────────────────────────────────────
+const Parametres = () => {
+  const [s, setS] = useState(getSettings());
+  const [saved, setSaved] = useState(false);
+  const set = (k,v) => setS(p=>({...p,[k]:v}));
+  const save = () => {
+    localStorage.setItem('mf_settings', JSON.stringify(s));
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 2500);
+  };
+  return (
+    <div>
+      <div className="page-header">
+        <div><div className="page-title">⚙️ Paramètres</div><div className="page-subtitle">Informations de votre société — utilisées dans les en-têtes PDF</div></div>
+      </div>
+      {saved && <div className="alert alert-green" style={{marginBottom:16}}>✅ Paramètres enregistrés — pris en compte dans les prochains PDF</div>}
+      <div className="card">
+        <div className="section-title">Identité de la société</div>
+        <div className="fg fg-2">
+          <div className="fs full"><label>Nom de la société *</label><input value={s.nom} onChange={e=>set('nom',e.target.value)} placeholder="MEDITEC"/></div>
+          <div className="fs full"><label>Adresse (n° et rue)</label><input value={s.adresse} onChange={e=>set('adresse',e.target.value)} placeholder="12 rue de la Paix"/></div>
+          <div className="fs"><label>Code postal</label><input value={s.cp} onChange={e=>set('cp',e.target.value)} placeholder="33000" style={{fontFamily:'DM Mono'}}/></div>
+          <div className="fs"><label>Ville</label><input value={s.ville} onChange={e=>set('ville',e.target.value)} placeholder="Bordeaux"/></div>
+          <div className="fs"><label>Téléphone</label><input value={s.tel} onChange={e=>set('tel',e.target.value)} placeholder="05 56 XX XX XX"/></div>
+          <div className="fs"><label>Email</label><input type="email" value={s.email} onChange={e=>set('email',e.target.value)} placeholder="contact@meditec.fr"/></div>
+        </div>
+        <div className="section-title">Numéros administratifs</div>
+        <div className="fg fg-2">
+          <div className="fs"><label>N° FINESS</label><input value={s.finess} onChange={e=>set('finess',e.target.value)} placeholder="33XXXXXX" style={{fontFamily:'DM Mono'}}/></div>
+          <div className="fs"><label>SIRET</label><input value={s.siret} onChange={e=>set('siret',e.target.value)} placeholder="123 456 789 00012" style={{fontFamily:'DM Mono'}}/></div>
+          <div className="fs full"><label>N° Agrément ARS</label><input value={s.agrement} onChange={e=>set('agrement',e.target.value)} placeholder="33-2024-XXXX" style={{fontFamily:'DM Mono'}}/></div>
+        </div>
+        <div style={{marginTop:20}}>
+          <button className="btn btn-primary btn-lg" onClick={save}>💾 Enregistrer les paramètres</button>
+        </div>
+      </div>
+      <div className="card" style={{marginTop:16}}>
+        <div className="section-title">Aperçu en-tête PDF</div>
+        <div style={{background:'#fff',border:'1px solid #ddd',borderRadius:8,padding:'14px 18px',display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+          <div style={{fontSize:11,color:'#333',fontWeight:700,borderRight:'1px solid #ccc',paddingRight:14}}>
+            <div style={{color:'#00238B',fontWeight:900,fontSize:13}}>MINISTÈRE</div>
+            <div style={{color:'#00238B',fontWeight:900,fontSize:13}}>DE LA SANTÉ</div>
+            <div style={{color:'#888',fontSize:9,marginTop:2}}>Liberté • Égalité • Fraternité</div>
+          </div>
+          <div style={{fontSize:11}}>
+            <div style={{fontWeight:700,fontSize:13,color:'#111'}}>{s.nom}</div>
+            <div style={{color:'#555',fontSize:10}}>PSDM — Prestataire de Services et Distributeur de Matériel Médical</div>
+            <div style={{color:'#555',fontSize:10}}>FINESS: {s.finess} | SIRET: {s.siret} | Tél: {s.tel}</div>
+            <div style={{color:'#555',fontSize:10}}>{s.adresse} — {s.cp} {s.ville} | Agrément: {s.agrement}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── App principale ─────────────────────────────────────────────────────────────
+const App = () => {
+  const [dossiers,setDossiers]=useState(initDossiers);
+  const [page,setPage]=useState('dashboard');
+  const [modal,setModal]=useState(null);
+  const [selected,setSelected]=useState(null);
+  const [sidebarOpen,setSidebarOpen]=useState(false);
+
+  const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('local'); // 'local' | 'synced' | 'error'
+
+  // Charger depuis JSONBin au démarrage
+  useEffect(() => {
+    if (!JSONBIN_CONFIGURED) return;
+    setSyncing(true);
+    syncLoad().then(data => {
+      if (data && Array.isArray(data)) {
+        setDossiers(data);
+        localStorage.setItem('mf_v2', JSON.stringify(data));
+        setSyncStatus('synced');
+      }
+      setSyncing(false);
+    });
+  }, []);
+
+  // Sauvegarder localement + JSONBin à chaque modif
+  useEffect(() => {
+    localStorage.setItem('mf_v2', JSON.stringify(dossiers));
+    if (!JSONBIN_CONFIGURED) return;
+    setSyncStatus('syncing');
+    syncSave(dossiers).then(() => setSyncStatus('synced')).catch(() => setSyncStatus('error'));
+  }, [dossiers]);
+
+  const saveDossier = d => {
+    setDossiers(prev=>{const i=prev.findIndex(x=>x.id===d.id); return i>=0?prev.map(x=>x.id===d.id?d:x):[...prev,d];});
+    setModal(null);
+  };
+  const updateStatus = (id,statut) => {
+    setDossiers(prev=>prev.map(d=>d.id===id?{...d,statut}:d));
+    setSelected(prev=>prev&&prev.id===id?{...prev,statut}:prev);
+  };
+
+  const exportExcel = () => {
+    const rows=dossiers.map(d=>({
+      'Nom':d.nom,'Prénom':d.prenom,'N° SS':d.nsecu,'Date naissance':d.dateNaissance,
+      'Adresse':d.adresse,'Code postal':d.codePostal,'Ville':d.ville,'Téléphone':d.tel,'Email':d.email,
+      'Prescripteur':d.prescripteurNom,'N° RPPS':d.prescripteurRPPS,
+      'Type VPH':d.typeVPH,'Mutuelle':d.mutuelle,'Prise en charge':d.priseEnCharge,
+      'Statut':d.statut,'Date DEP':d.dateDepDEP||'','N° Accord CPAM':d.noAccordCPAM||'',
+      'Adjonctions':(d.adjonctions||[]).join(', '),'Créé le':fmtDate(d.dateCreation),'Notes':d.notes||'',
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Dossiers');
+    XLSX.writeFile(wb,`meditec_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const exportJSON = () => {
+    const blob=new Blob([JSON.stringify(dossiers,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=`meditec_backup_${new Date().toISOString().split('T')[0]}.json`;a.click();
+  };
+
+  const deleteDossier = (id) => {
+    setDossiers(prev=>prev.filter(d=>d.id!==id));
+    setModal(null);
+    setSelected(null);
+  };
+
+  const alertCount=dossiers.filter(d=>d.statut==='En attente CPAM'&&d.dateDepDEP&&daysUntil(addDays(d.dateDepDEP,10))<=0).length;
+
+  const nav=[
+    {key:'dashboard',icon:'📊',label:'Tableau de bord'},
+    {key:'dossiers',icon:'📁',label:'Dossiers clients'},
+    {key:'relances',icon:'🔔',label:'Relances',badge:alertCount},
+    {key:'parametres',icon:'⚙️',label:'Paramètres'},
+  ];
+
+  const renderPage = () => {
+    if(page==='dashboard') return <Dashboard dossiers={dossiers} onNew={()=>setModal('new')} onNewSimple={()=>setModal('new-simple')} onView={d=>{setSelected(d);setModal('view');}}/>;
+    if(page==='dossiers') return <Liste dossiers={dossiers} onNew={()=>setModal('new')} onNewSimple={()=>setModal('new-simple')} onView={d=>{setSelected(d);setModal('view');}} onEdit={d=>{setSelected(d);setModal('edit');}} onDelete={deleteDossier}/>;
+    if(page==='relances') return <Relances dossiers={dossiers} onView={d=>{setSelected(d);setModal('view');}}/>;
+    if(page==='parametres') return <Parametres/>;
+  };
+
+  return (
+    <div className="app-shell">
+      {/* Mobile header */}
+      <div className="mobile-header">
+        <button className="hamburger" onClick={()=>setSidebarOpen(o=>!o)}>☰</button>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <div className="logo-icon" style={{width:28,height:28,fontSize:14}}>🏥</div>
+          <span style={{fontWeight:700}}>MediFlow VPH</span>
+        </div>
+        <button className="btn btn-primary btn-sm" style={{marginLeft:'auto'}} onClick={()=>setModal('new')}>+ Nouveau</button>
+      </div>
+      <div className={`sidebar-backdrop ${sidebarOpen?'visible':''}`} onClick={()=>setSidebarOpen(false)}/>
+      <div className={`sidebar ${sidebarOpen?'open':''}`}>
+        <div className="sidebar-logo">
+          <a href="../index.html" style={{display:'flex',alignItems:'center',gap:8,textDecoration:'none',color:'var(--text2)',fontSize:11,marginBottom:8,padding:'4px 2px'}}>
+            ← Portail MEDITEC
+          </a>
+          <div className="logo-icon">🏥</div>
+          <div><div className="logo-text">MediFlow</div><div className="logo-sub">VPH — PSDM</div></div>
+        </div>
+        <nav className="nav">
+          {nav.map(n=>(
+            <button key={n.key} className={`nav-item ${page===n.key?'active':''}`} onClick={()=>{setPage(n.key);setSidebarOpen(false);}}>
+              <span className="nav-icon">{n.icon}</span>{n.label}
+              {n.badge>0&&<span className="nav-badge">{n.badge}</span>}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.5px'}}>Exports globaux</div>
+          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+            {JSONBIN_CONFIGURED && (
+              <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'flex-start'}} onClick={()=>{
+                setSyncing(true);
+                syncLoad().then(data=>{
+                  if(data&&Array.isArray(data)){setDossiers(data);setSyncStatus('synced');}
+                  setSyncing(false);
+                });
+              }}>🔄 Rafraîchir les données</button>
+            )}
+            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'flex-start'}} onClick={exportExcel}>📊 Export Excel</button>
+            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'flex-start'}} onClick={exportJSON}>💾 Export JSON</button>
+          </div>
+          {selected && (
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.5px'}}>
+                PDF — {selected.nom} {selected.prenom}
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                {(dossiers.find(d=>d.id===selected.id)||selected)?.circuit==='simple'
+                  ? <button className="btn btn-primary btn-sm" style={{width:'100%',justifyContent:'flex-start'}}
+                      onClick={()=>generateDAP(dossiers.find(d=>d.id===selected.id)||selected)}>
+                      📄 Demande DAP
+                    </button>
+                  : <><button className="btn btn-green btn-sm" style={{width:'100%',justifyContent:'flex-start'}}
+                      onClick={()=>generateEvaluation(dossiers.find(d=>d.id===selected.id)||selected)}>
+                      📄 Fiche Évaluation
+                    </button>
+                    <button className="btn btn-primary btn-sm" style={{width:'100%',justifyContent:'flex-start'}}
+                      onClick={()=>generatePreconisation(dossiers.find(d=>d.id===selected.id)||selected)}>
+                      📄 Fiche Préconisation
+                    </button></>
+                }
+              </div>
+            </div>
+          )}
+          <div style={{fontSize:10,color:'var(--text3)',marginTop:10,textAlign:'center'}}>
+            MediFlow VPH v2.0 — {dossiers.length} dossier(s)
+          </div>
+          <div style={{fontSize:10,marginTop:6,textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>
+            {!JSONBIN_CONFIGURED && <span style={{color:'var(--amber)'}}>⚠️ Mode local (JSONBin non configuré)</span>}
+            {JSONBIN_CONFIGURED && syncStatus==='synced' && <span style={{color:'var(--green)'}}>☁️ Synchronisé</span>}
+            {JSONBIN_CONFIGURED && syncStatus==='syncing' && <span style={{color:'var(--text2)'}}>⏳ Sync...</span>}
+            {JSONBIN_CONFIGURED && syncStatus==='error' && <span style={{color:'var(--red)'}}>⚠️ Erreur sync</span>}
+          </div>
+        </div>
+      </div>
+      <div className="main">{renderPage()}</div>
+
+      {(modal==='new'||(modal==='edit'&&(!selected||selected.circuit!=='simple')))&&(
+        <DossierForm existing={modal==='edit'?selected:null} onSave={saveDossier} onClose={()=>setModal(null)}/>
+      )}
+      {(modal==='edit'&&selected?.circuit==='simple')&&(
+        <DossierSimpleForm existing={modal==='edit'?selected:null} onSave={saveDossier} onClose={()=>setModal(null)}/>
+      )}
+      {modal==='new-simple'&&(
+        <DossierSimpleForm existing={null} onSave={saveDossier} onClose={()=>setModal(null)}/>
+      )}
+      {modal==='view'&&selected&&(
+        <DossierDetail
+          dossier={dossiers.find(d=>d.id===selected.id)||selected}
+          onClose={()=>setModal(null)}
+          onEdit={()=>setModal('edit')}
+          onStatusChange={updateStatus}
+          onDelete={deleteDossier}
+        />
+      )}
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
