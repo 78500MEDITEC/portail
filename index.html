@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEDITEC — Portail</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1117; --surface:#181c27; --surface2:#1e2336; --border:#2a2f45;
+  --accent:#3b82f6; --green:#22c55e; --amber:#f59e0b; --red:#ef4444;
+  --text:#e8eaf0; --text2:#8b92a8; --text3:#4f5671;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* ── LOGIN ── */
+.login-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 60% 20%, rgba(59,130,246,.08) 0%, transparent 60%)}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:40px;width:100%;max-width:420px;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.login-logo{display:flex;align-items:center;gap:14px;margin-bottom:32px}
+.login-icon{width:52px;height:52px;background:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.login-title{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.login-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.login-form{display:flex;flex-direction:column;gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+label{font-size:12px;font-weight:600;color:var(--text2)}
+input{background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s}
+input:focus{border-color:var(--accent)}
+.btn-login{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:13px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-login:hover{background:#2563eb;transform:translateY(-1px)}
+.login-err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:10px 14px;font-size:13px;display:none}
+.login-err.show{display:block}
+
+/* ── PORTAIL ── */
+.portal{flex:1;padding:28px;max-width:1100px;margin:0 auto;width:100%;display:none}
+.portal.show{display:block}
+.portal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:12px}
+.portal-logo{display:flex;align-items:center;gap:12px}
+.portal-icon{width:42px;height:42px;background:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.portal-name{font-size:20px;font-weight:700}
+.portal-env{font-size:11px;color:var(--text2);margin-top:1px}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:13px}
+.user-dot{width:8px;height:8px;background:var(--green);border-radius:50%}
+.btn-logout{background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;margin-left:8px;font-family:'DM Sans',sans-serif}
+.btn-logout:hover{color:var(--red)}
+
+.welcome{margin-bottom:28px}
+.welcome-title{font-size:26px;font-weight:700;letter-spacing:-.5px}
+.welcome-sub{font-size:14px;color:var(--text2);margin-top:4px}
+
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.app-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;text-decoration:none;display:block}
+.app-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.app-card.blue::before{background:linear-gradient(90deg,#3b82f6,#6366f1)}
+.app-card.green::before{background:linear-gradient(90deg,#22c55e,#16a34a)}
+.app-card.amber::before{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.app-card.purple::before{background:linear-gradient(90deg,#a855f7,#7c3aed)}
+.app-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.3);border-color:rgba(59,130,246,.3)}
+.app-card.locked{opacity:.45;cursor:not-allowed}
+.app-card.locked:hover{transform:none;box-shadow:none}
+.app-icon{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:16px}
+.app-icon.blue{background:rgba(59,130,246,.15)}
+.app-icon.green{background:rgba(34,197,94,.15)}
+.app-icon.amber{background:rgba(245,158,11,.15)}
+.app-icon.purple{background:rgba(168,85,247,.15)}
+.app-name{font-size:17px;font-weight:700;margin-bottom:6px}
+.app-desc{font-size:12px;color:var(--text2);line-height:1.6}
+.app-tag{display:inline-flex;align-items:center;gap:4px;margin-top:12px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:12px}
+.app-tag.active{background:rgba(34,197,94,.1);color:#4ade80}
+.app-tag.soon{background:rgba(100,100,120,.1);color:var(--text3)}
+.lock-icon{position:absolute;top:16px;right:16px;font-size:16px;opacity:.5}
+
+.admin-section{margin-top:36px}
+.admin-title{font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+.users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.user-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.user-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:13px;font-weight:600}
+.user-role{font-size:11px;color:var(--text2);margin-top:1px}
+.role-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-top:4px;display:inline-block}
+.role-admin{background:rgba(239,68,68,.15);color:#f87171}
+.role-commercial{background:rgba(59,130,246,.15);color:#60a5fa}
+.role-tech{background:rgba(34,197,94,.15);color:#4ade80}
+
+footer{padding:16px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text3)}
+
+@media(max-width:600px){
+  .login-card{padding:28px 20px}
+  .portal{padding:16px}
+  .apps-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-icon">🏥</div>
+      <div>
+        <div class="login-title">MEDITEC</div>
+        <div class="login-sub">Portail applicatif interne</div>
+      </div>
+    </div>
+    <div class="login-form">
+      <div class="field">
+        <label>Identifiant</label>
+        <input type="text" id="loginUser" placeholder="votre identifiant" autocomplete="username"/>
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <div class="login-err" id="loginErr">Identifiant ou mot de passe incorrect.</div>
+      <button class="btn-login" onclick="doLogin()">Se connecter →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PORTAIL -->
+<div class="portal" id="portal">
+  <div class="portal-header">
+    <div class="portal-logo">
+      <div class="portal-icon">🏥</div>
+      <div>
+        <div class="portal-name">MEDITEC</div>
+        <div class="portal-env">Portail applicatif interne</div>
+      </div>
+    </div>
+    <div class="user-chip">
+      <div class="user-dot"></div>
+      <span id="userLabel">—</span>
+      <button class="btn-logout" onclick="doLogout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="welcome">
+    <div class="welcome-title" id="welcomeTitle">Bonjour !</div>
+    <div class="welcome-sub" id="welcomeSub">Sélectionnez une application pour commencer.</div>
+  </div>
+
+  <div class="apps-grid" id="appsGrid">
+    <!-- Généré dynamiquement -->
+  </div>
+
+  <!-- Section admin uniquement -->
+  <div class="admin-section" id="adminSection" style="display:none">
+    <div class="admin-title">👥 Gestion des utilisateurs</div>
+    <div class="users-grid" id="usersGrid"></div>
+  </div>
+</div>
+
+<footer>
+  <span>MEDITEC — Portail interne v1.0</span>
+  <span id="footerUser"></span>
+</footer>
+
+<script>
+// ── Utilisateurs ──────────────────────────────────────────────────────────────
+// ⚠️ Changer les mots de passe avant mise en production
+const USERS = [
+  {
+    id:'jean',
+    nom:'Jean',
+    prenom:'',
+    password:'Meditec2024!',
+    role:'admin',
+    acces:['vph','psdm','planning'],
+  },
+  {
+    id:'commercial1',
+    nom:'Commercial 1',
+    prenom:'',
+    password:'Com2024!',
+    role:'commercial',
+    acces:['vph'],
+  },
+  {
+    id:'commercial2',
+    nom:'Commercial 2',
+    prenom:'',
+    password:'Com2024B!',
+    role:'commercial',
+    acces:['vph'],
+  },
+  {
+    id:'tech1',
+    nom:'Technicien 1',
+    prenom:'',
+    password:'Tech2024!',
+    role:'technicien',
+    acces:['psdm'],
+  },
+  {
+    id:'tech2',
+    nom:'Technicien 2',
+    prenom:'',
+    password:'Tech2024B!',
+    role:'technicien',
+    acces:['psdm'],
+  },
+];
+
+// ── Applications ──────────────────────────────────────────────────────────────
+const APPS = [
+  {
+    id:'vph',
+    nom:'MediFlow VPH',
+    desc:'Gestion des dossiers clients VPH — Fiche évaluation, préconisation, DEP/DAP, suivi CPAM',
+    icon:'♿',
+    color:'blue',
+    url:'vph/index.html',
+    actif:true,
+  },
+  {
+    id:'psdm',
+    nom:'PSDM Manager',
+    desc:'Suivi des équipements, maintenance, désinfection, interventions techniciens',
+    icon:'🔧',
+    color:'green',
+    url:'https://78500meditec.github.io/psdm/',
+    actif:true,
+  },
+  {
+    id:'planning',
+    nom:'Planning & Agenda',
+    desc:'Agenda partagé, tournées techniciens, rendez-vous clients',
+    icon:'📅',
+    color:'amber',
+    url:'#',
+    actif:false,
+  },
+  {
+    id:'stock',
+    nom:'Gestion de stock',
+    desc:'Inventaire matériel, commandes fournisseurs, alertes rupture',
+    icon:'📦',
+    color:'purple',
+    url:'#',
+    actif:false,
+  },
+];
+
+const ROLE_LABELS = {admin:'Administrateur', commercial:'Commercial', technicien:'Technicien'};
+const ROLE_CLASSES = {admin:'role-admin', commercial:'role-commercial', technicien:'role-tech'};
+const AVATAR_COLORS = {admin:'#ef4444', commercial:'#3b82f6', technicien:'#22c55e'};
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+let currentUser = null;
+
+function doLogin() {
+  const id = document.getElementById('loginUser').value.trim().toLowerCase();
+  const pw = document.getElementById('loginPass').value;
+  const user = USERS.find(u => u.id === id && u.password === pw);
+  if (!user) {
+    document.getElementById('loginErr').classList.add('show');
+    document.getElementById('loginPass').value = '';
+    return;
+  }
+  currentUser = user;
+  sessionStorage.setItem('mf_user', JSON.stringify({id:user.id, nom:user.nom, role:user.role, acces:user.acces}));
+  showPortail(user);
+}
+
+function doLogout() {
+  sessionStorage.removeItem('mf_user');
+  currentUser = null;
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('portal').classList.remove('show');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').classList.remove('show');
+}
+
+function showPortail(user) {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('portal').classList.add('show');
+  document.getElementById('userLabel').textContent = user.nom + ' (' + ROLE_LABELS[user.role] + ')';
+  document.getElementById('welcomeTitle').textContent = 'Bonjour, ' + user.nom + ' !';
+  document.getElementById('welcomeSub').textContent =
+    user.role === 'admin' ? 'Accès complet — ' + APPS.filter(a=>a.actif).length + ' applications disponibles.' :
+    'Vous avez accès à ' + user.acces.length + ' application(s).';
+  document.getElementById('footerUser').textContent = 'Connecté : ' + user.nom + ' — ' + new Date().toLocaleString('fr-FR');
+
+  // Afficher les apps
+  const grid = document.getElementById('appsGrid');
+  grid.innerHTML = '';
+  APPS.forEach(app => {
+    const hasAccess = user.role === 'admin' || user.acces.includes(app.id);
+    const card = document.createElement('a');
+    card.className = 'app-card ' + app.color + (hasAccess && app.actif ? '' : ' locked');
+    card.href = hasAccess && app.actif ? app.url : '#';
+    if (!hasAccess || !app.actif) card.onclick = e => e.preventDefault();
+    card.innerHTML = `
+      <div class="app-icon ${app.color}">${app.icon}</div>
+      <div class="app-name">${app.nom}</div>
+      <div class="app-desc">${app.desc}</div>
+      <div class="app-tag ${app.actif && hasAccess ? 'active' : 'soon'}">
+        ${app.actif && hasAccess ? '● Disponible' : !hasAccess ? '🔒 Accès restreint' : '⏳ Bientôt disponible'}
+      </div>
+      ${!hasAccess ? '<div class="lock-icon">🔒</div>' : ''}
+    `;
+    grid.appendChild(card);
+  });
+
+  // Section admin
+  if (user.role === 'admin') {
+    document.getElementById('adminSection').style.display = 'block';
+    const ug = document.getElementById('usersGrid');
+    ug.innerHTML = '';
+    USERS.forEach(u => {
+      const initials = u.nom.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+      ug.innerHTML += `
+        <div class="user-card">
+          <div class="user-avatar" style="background:${AVATAR_COLORS[u.role]}22;color:${AVATAR_COLORS[u.role]}">${initials}</div>
+          <div class="user-info">
+            <div class="user-name">${u.nom}</div>
+            <div class="user-role">@${u.id}</div>
+            <span class="role-badge ${ROLE_CLASSES[u.role]}">${ROLE_LABELS[u.role]}</span>
+          </div>
+        </div>`;
+    });
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+// Entrée avec Entrée
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginWrap').style.display !== 'none') doLogin();
+});
+
+// Restaurer session
+const saved = sessionStorage.getItem('mf_user');
+if (saved) {
+  try {
+    const u = JSON.parse(saved);
+    const full = USERS.find(x => x.id === u.id);
+    if (full) { currentUser = full; showPortail(full); }
+  } catch(e) {}
+}
+</script>
+</body>
+</html>
