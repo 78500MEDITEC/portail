@@ -449,6 +449,51 @@ body {
   .card-meta, .card-actions { display: none; }
 }
 
+.nav-tab {
+  padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 600;
+  cursor: pointer; color: var(--text3); transition: all .2s; white-space:nowrap;
+}
+.nav-tab:hover { color: var(--text2); background: var(--surface); }
+.nav-tab.active { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+.page { display: none; }
+.page.active { display: block; }
+/* ── CLIENT CARD ── */
+.client-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 14px 18px;
+  display: grid; grid-template-columns: auto 1fr auto;
+  gap: 14px; align-items: center; cursor: pointer; transition: all .2s;
+}
+.client-card:hover { border-color: var(--border2); box-shadow: var(--shadow); }
+.client-avatar {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #1d4ed8);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 15px; flex-shrink: 0;
+}
+/* ── IMPORT ZONE ── */
+.import-zone {
+  border: 2px dashed var(--border2); border-radius: 12px;
+  padding: 32px; text-align: center; cursor: pointer;
+  transition: all .2s; background: var(--bg);
+}
+.import-zone:hover { border-color: var(--accent); background: var(--accent-l); }
+.import-zone.dragover { border-color: var(--accent); background: var(--accent-l); }
+/* ── PARAM CARD ── */
+.param-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;
+}
+.param-card-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.param-card-title { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.param-card-body { padding: 20px; }
+.contact-row {
+  display: grid; grid-template-columns: 1fr 2fr auto;
+  gap: 10px; align-items: center; margin-bottom: 10px;
+}
 /* ── PRINT RAPPORT ───────────────────────── */
 @media print {
   body * { visibility: hidden; }
@@ -494,10 +539,15 @@ body {
       <div class="topbar-logo">📞</div>
       <div>
         <div class="topbar-title">MEDITEC CRM</div>
-        <div class="topbar-subtitle">Gestion des appels &amp; contacts</div>
+        <div class="topbar-subtitle" id="page-subtitle">Tableau de bord</div>
       </div>
     </div>
     <div class="topbar-right">
+      <div style="display:flex;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:4px">
+        <div class="nav-tab active" data-page="dashboard" onclick="goPage('dashboard')"><i class="fas fa-chart-pie"></i> Contacts</div>
+        <div class="nav-tab" data-page="clients" onclick="goPage('clients')"><i class="fas fa-users"></i> Clients</div>
+        <div class="nav-tab" data-page="parametres" onclick="goPage('parametres')"><i class="fas fa-cog"></i> Paramètres</div>
+      </div>
       <div id="rappel-dot-wrap" style="display:none;align-items:center;gap:6px;background:var(--orange-l);border:1px solid #fcd34d;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--orange)">
         <div class="alert-dot" style="background:var(--orange)"></div>
         <span id="rappel-count">0</span> rappel(s) aujourd'hui
@@ -520,6 +570,9 @@ body {
 
   <!-- BODY -->
   <div class="body">
+
+    <!-- PAGE DASHBOARD (contacts) -->
+    <div class="page active" id="page-dashboard">
 
     <!-- RAPPELS DU JOUR -->
     <div id="rappels-banner"></div>
@@ -596,6 +649,130 @@ body {
       </div>
     </div>
 
+    </div><!-- /page-dashboard -->
+
+    <!-- PAGE CLIENTS -->
+    <div class="page" id="page-clients">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+        <div class="search-box" style="flex:1;min-width:200px">
+          <i class="fas fa-search" style="color:var(--text3)"></i>
+          <input type="text" id="cli-search" placeholder="Nom, téléphone, email, ville..." oninput="renderClients()">
+        </div>
+        <select class="filter-sel" id="cli-type" onchange="renderClients()">
+          <option value="">Tous types</option>
+          <option value="EHPAD">EHPAD / Collectivité</option>
+          <option value="CLINIQUE">Clinique / Hôpital</option>
+          <option value="PARTICULIER">Particulier / Domicile</option>
+          <option value="AUTRE">Autre</option>
+        </select>
+        <button class="btn btn-primary" onclick="openModal('modal-add-client')"><i class="fas fa-plus"></i> Nouveau client</button>
+        <button class="btn btn-outline" onclick="document.getElementById('excel-input').click()"><i class="fas fa-file-excel"></i> Importer Excel/CSV</button>
+        <input type="file" id="excel-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="importerExcel(this)">
+      </div>
+
+      <!-- Stats clients -->
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+        <div class="stat-box" style="--c:var(--accent);--cl:var(--accent-l)">
+          <div class="stat-icon"><i class="fas fa-users"></i></div>
+          <div class="stat-val" id="cli-s-total">0</div>
+          <div class="stat-lbl">Total clients</div>
+        </div>
+        <div class="stat-box" style="--c:var(--purple);--cl:var(--purple-l)">
+          <div class="stat-icon"><i class="fas fa-hospital"></i></div>
+          <div class="stat-val" id="cli-s-ehpad">0</div>
+          <div class="stat-lbl">EHPAD / Collectivités</div>
+        </div>
+        <div class="stat-box" style="--c:var(--green);--cl:var(--green-l)">
+          <div class="stat-icon"><i class="fas fa-home"></i></div>
+          <div class="stat-val" id="cli-s-part">0</div>
+          <div class="stat-lbl">Particuliers</div>
+        </div>
+        <div class="stat-box" style="--c:var(--orange);--cl:var(--orange-l)">
+          <div class="stat-icon"><i class="fas fa-phone-volume"></i></div>
+          <div class="stat-val" id="cli-s-contacts">0</div>
+          <div class="stat-lbl">Contacts liés</div>
+        </div>
+      </div>
+
+      <!-- Zone import -->
+      <div class="import-zone" id="import-zone" onclick="document.getElementById('excel-input').click()"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="dropExcel(event)"
+        style="margin-bottom:20px;display:none">
+        <i class="fas fa-file-excel" style="font-size:36px;color:var(--green);margin-bottom:12px;display:block"></i>
+        <div style="font-weight:700;font-size:15px">Glissez votre fichier Excel/CSV ici</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px">ou cliquez pour sélectionner — Colonnes attendues : Nom, Téléphone, Email, Adresse, Ville, Type</div>
+      </div>
+
+      <div class="cards-list" id="clients-list">
+        <div class="empty"><span class="empty-icon">👥</span><p>Aucun client — importez votre base Excel ou ajoutez manuellement</p></div>
+      </div>
+    </div>
+
+    <!-- PAGE PARAMÈTRES -->
+    <div class="page" id="page-parametres">
+
+      <!-- Contacts équipe -->
+      <div class="param-card">
+        <div class="param-card-header">
+          <div class="param-card-title"><i class="fas fa-address-book" style="color:var(--accent)"></i> Contacts de l'équipe &amp; adresses email</div>
+          <button class="btn btn-primary btn-sm" onclick="addContactRow()"><i class="fas fa-plus"></i> Ajouter</button>
+        </div>
+        <div class="param-card-body">
+          <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Ces adresses email seront proposées lors de la création d'un appel. Modifiez et cliquez Sauvegarder.</p>
+          <div id="contacts-equipe-list">
+            <!-- Injecté par renderParamContacts() -->
+          </div>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="saveParamContacts()"><i class="fas fa-save"></i> Sauvegarder les contacts</button>
+        </div>
+      </div>
+
+      <!-- Règles aiguillage -->
+      <div class="param-card">
+        <div class="param-card-header">
+          <div class="param-card-title"><i class="fas fa-random" style="color:var(--purple)"></i> Aiguillage automatique par type de contact</div>
+        </div>
+        <div class="param-card-body">
+          <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Pour chaque type de contact, définissez le(s) destinataire(s) email par défaut.</p>
+          <div id="aiguillage-list">
+            <!-- Injecté par renderAiguillage() -->
+          </div>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="saveAiguillage()"><i class="fas fa-save"></i> Sauvegarder</button>
+        </div>
+      </div>
+
+      <!-- Modes de contact activés -->
+      <div class="param-card">
+        <div class="param-card-header">
+          <div class="param-card-title"><i class="fas fa-sliders-h" style="color:var(--teal)"></i> Informations société</div>
+        </div>
+        <div class="param-card-body">
+          <div class="form-grid">
+            <div class="form-group"><div class="form-label">Nom de la société</div><input type="text" class="form-input" id="param-societe" placeholder="MEDITEC"></div>
+            <div class="form-group"><div class="form-label">Téléphone principal</div><input type="text" class="form-input" id="param-tel" placeholder="05 56 XX XX XX"></div>
+            <div class="form-group"><div class="form-label">Email principal</div><input type="email" class="form-input" id="param-email" placeholder="contact@meditec.fr"></div>
+            <div class="form-group"><div class="form-label">Adresse</div><input type="text" class="form-input" id="param-adresse" placeholder="Bordeaux (33)"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="saveParamSociete()"><i class="fas fa-save"></i> Sauvegarder</button>
+        </div>
+      </div>
+
+      <!-- Export/Import données CRM -->
+      <div class="param-card">
+        <div class="param-card-header">
+          <div class="param-card-title"><i class="fas fa-database" style="color:var(--orange)"></i> Données CRM</div>
+        </div>
+        <div class="param-card-body" style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="exportBackupCRM()"><i class="fas fa-download"></i> Exporter sauvegarde JSON</button>
+          <button class="btn btn-outline" onclick="document.getElementById('import-backup-input').click()"><i class="fas fa-upload"></i> Restaurer depuis backup</button>
+          <input type="file" id="import-backup-input" accept=".json" style="display:none" onchange="importBackupCRM(this)">
+          <button class="btn btn-outline" onclick="exportClientsCSV()"><i class="fas fa-file-csv"></i> Exporter clients CSV</button>
+        </div>
+      </div>
+
+    </div><!-- /page-parametres -->
+
   </div><!-- /body -->
 </div><!-- /app -->
 
@@ -612,6 +789,36 @@ body {
 
     <!-- TYPE -->
     <div class="form-section"><i class="fas fa-tag"></i> Type de contact</div>
+    <!-- Canal de contact -->
+    <div class="form-section"><i class="fas fa-satellite-dish"></i> Canal de contact</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px" id="canal-grid">
+      <div class="urgence-btn selected-normal" data-canal="TEL" onclick="selectCanal(this)" style="flex:1;min-width:100px">📞 Téléphone</div>
+      <div class="urgence-btn" data-canal="VISITE" onclick="selectCanal(this)" style="flex:1;min-width:100px">🏪 Visite magasin</div>
+      <div class="urgence-btn" data-canal="EMAIL" onclick="selectCanal(this)" style="flex:1;min-width:100px">📧 Email reçu</div>
+      <div class="urgence-btn" data-canal="COURRIER" onclick="selectCanal(this)" style="flex:1;min-width:100px">✉️ Courrier</div>
+      <div class="urgence-btn" data-canal="WEB" onclick="selectCanal(this)" style="flex:1;min-width:100px">💻 Web / Chat</div>
+      <div class="urgence-btn" data-canal="SMS" onclick="selectCanal(this)" style="flex:1;min-width:100px">📱 SMS</div>
+    </div>
+
+    <!-- Recherche client existant -->
+    <div class="form-section"><i class="fas fa-search"></i> Client existant (optionnel)</div>
+    <div style="position:relative;margin-bottom:4px">
+      <div class="search-box">
+        <i class="fas fa-users" style="color:var(--text3)"></i>
+        <input type="text" id="a-client-search" placeholder="Rechercher dans votre base clients..." oninput="rechercherClient(this.value)" autocomplete="off">
+      </div>
+      <div id="client-suggestions" style="position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lg);z-index:200;display:none;max-height:200px;overflow-y:auto"></div>
+    </div>
+    <div id="client-selectionne" style="display:none;background:var(--accent-l);border:1.5px solid var(--accent);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:700;font-size:13px" id="cs-nom">—</div>
+        <div style="font-size:11px;color:var(--text3)" id="cs-detail">—</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="deselectionnerClient()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Type de demande -->
+    <div class="form-section"><i class="fas fa-tag"></i> Objet de la demande</div>
     <div class="type-grid" id="type-grid">
       <div class="type-btn" data-type="RENSEIGNEMENT" onclick="selectType(this)" style="--bc:#0891b2;--bl:var(--teal-l);--tc:var(--teal)">
         <span class="type-emoji">💬</span>
@@ -785,6 +992,56 @@ body {
 </div>
 </div>
 
+<!-- Modal: Nouveau client -->
+<div class="overlay" id="modal-add-client">
+<div class="modal">
+  <div class="modal-header">
+    <div class="modal-title">👤 Nouveau client</div>
+    <div class="modal-close" onclick="closeModal('modal-add-client')"><i class="fas fa-times"></i></div>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-group"><div class="form-label">Nom / Raison sociale *</div><input type="text" class="form-input" id="nc-nom" placeholder="ex: EHPAD du Soleil / Dupont Marie"></div>
+      <div class="form-group"><div class="form-label">Type de client</div>
+        <select class="form-select" id="nc-type">
+          <option value="EHPAD">EHPAD / Collectivité</option>
+          <option value="CLINIQUE">Clinique / Hôpital</option>
+          <option value="PARTICULIER">Particulier / Domicile</option>
+          <option value="AUTRE">Autre</option>
+        </select>
+      </div>
+      <div class="form-group"><div class="form-label">Téléphone</div><input type="tel" class="form-input" id="nc-tel" placeholder="05 56 XX XX XX"></div>
+      <div class="form-group"><div class="form-label">Email</div><input type="email" class="form-input" id="nc-email" placeholder="contact@structure.fr"></div>
+      <div class="form-group full"><div class="form-label">Adresse</div><input type="text" class="form-input" id="nc-adresse" placeholder="Rue, numéro"></div>
+      <div class="form-group"><div class="form-label">Code postal</div><input type="text" class="form-input" id="nc-cp" placeholder="33000"></div>
+      <div class="form-group"><div class="form-label">Ville</div><input type="text" class="form-input" id="nc-ville" placeholder="Bordeaux"></div>
+      <div class="form-group"><div class="form-label">Contact principal</div><input type="text" class="form-input" id="nc-contact" placeholder="Nom du référent"></div>
+      <div class="form-group"><div class="form-label">N° client (optionnel)</div><input type="text" class="form-input" id="nc-ref" placeholder="ex: C0042"></div>
+      <div class="form-group full"><div class="form-label">Notes</div><textarea class="form-textarea" id="nc-notes" placeholder="Informations utiles..."></textarea></div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeModal('modal-add-client')">Annuler</button>
+    <button class="btn btn-primary" onclick="saveNewClient()"><i class="fas fa-save"></i> Enregistrer</button>
+  </div>
+</div>
+</div>
+
+<!-- Modal: Fiche client -->
+<div class="overlay" id="modal-fiche-client">
+<div class="modal wide">
+  <div class="modal-header">
+    <div class="modal-title" id="fiche-client-title">Fiche client</div>
+    <div class="modal-close" onclick="closeModal('modal-fiche-client')"><i class="fas fa-times"></i></div>
+  </div>
+  <div class="modal-body" id="fiche-client-body"></div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeModal('modal-fiche-client')">Fermer</button>
+    <button class="btn btn-primary" onclick="nouvelAppelClient()"><i class="fas fa-phone-alt"></i> Nouvel appel depuis ce client</button>
+  </div>
+</div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 
 <script>
@@ -802,7 +1059,7 @@ const USERS = {
 
 // JSONBin — créez un bin CRM sur jsonbin.io et collez l'ID ici
 const JB_KEY = '$2a$10$5zO6qG217JnGLugyn8VrNesbvja1Yo8gLVIHtCTUWJlqwsMJefW7e';
-const JB_BIN_CRM = '69f0de73aaba8821974a5612'; // ← À remplacer
+const JB_BIN_CRM = 'VOTRE_BIN_CRM_ICI'; // ← À remplacer
 const JB_OK = JB_BIN_CRM !== 'VOTRE_BIN_CRM_ICI';
 
 const jbGet = async (id) => {
@@ -837,6 +1094,14 @@ const TYPE_CFG = {
   COMPTABLE:    { emoji:'📊', label:'Pb. comptable',   color:'var(--orange)', bg:'var(--orange-l)' },
   SAV:          { emoji:'🔧', label:'SAV / Panne',     color:'var(--red)',    bg:'var(--red-l)' },
   AUTRE:        { emoji:'📋', label:'Autre',           color:'var(--text2)',  bg:'var(--bg)' },
+};
+const CANAL_CFG = {
+  TEL:     { emoji:'📞', label:'Téléphone' },
+  VISITE:  { emoji:'🏪', label:'Visite magasin' },
+  COURRIER:{ emoji:'✉️', label:'Courrier' },
+  EMAIL:   { emoji:'📧', label:'Email reçu' },
+  WEB:     { emoji:'💻', label:'Web / Chat' },
+  SMS:     { emoji:'📱', label:'SMS' },
 };
 const STATUT_CFG = {
   NOUVEAU:   { label:'Nouveau',          color:'var(--red)',    bg:'var(--red-l)' },
@@ -1331,6 +1596,564 @@ function toast(msg, type='info') {
 }
 
 // ═══════════════════════════════════════════════════
+//  NAVIGATION PAGES
+// ═══════════════════════════════════════════════════
+function goPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page)?.classList.add('active');
+  document.querySelector('.nav-tab[data-page="'+page+'"]')?.classList.add('active');
+  const subtitles = {dashboard:'Contacts & appels entrants', clients:'Base clients', parametres:'Paramètres & configuration'};
+  document.getElementById('page-subtitle').textContent = subtitles[page]||page;
+  if(page==='clients')    renderClients();
+  if(page==='parametres') { renderParamContacts(); renderAiguillage(); loadParamSociete(); }
+}
+
+// ═══════════════════════════════════════════════════
+//  CANAL DE CONTACT
+// ═══════════════════════════════════════════════════
+let selectedCanal = 'TEL';
+
+function selectCanal(el) {
+  document.querySelectorAll('#canal-grid .urgence-btn').forEach(b=>{
+    b.className='urgence-btn';
+  });
+  selectedCanal = el.dataset.canal;
+  el.classList.add('selected-normal');
+}
+
+// ═══════════════════════════════════════════════════
+//  BASE CLIENTS
+// ═══════════════════════════════════════════════════
+let CLIENTS_DB = [];
+let selectedClientId = null;
+
+function loadClients() {
+  CLIENTS_DB = LS.load('clients_db', []);
+  if(JB_OK) {
+    jbGet(JB_BIN_CRM).then(d=>{ if(d.clients?.length){ CLIENTS_DB=d.clients; LS.save('clients_db',CLIENTS_DB); renderClients(); } }).catch(()=>{});
+  }
+}
+
+function renderClients() {
+  const search = (document.getElementById('cli-search')?.value||'').toLowerCase();
+  const fType  = document.getElementById('cli-type')?.value||'';
+  const data = CLIENTS_DB.filter(cl=>{
+    if(fType && cl.type!==fType) return false;
+    if(search){
+      const hay=[cl.nom,cl.tel,cl.email,cl.ville,cl.cp,cl.contact,cl.ref].join(' ').toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Stats
+  document.getElementById('cli-s-total').textContent = CLIENTS_DB.length;
+  document.getElementById('cli-s-ehpad').textContent = CLIENTS_DB.filter(c=>c.type==='EHPAD'||c.type==='CLINIQUE').length;
+  document.getElementById('cli-s-part').textContent  = CLIENTS_DB.filter(c=>c.type==='PARTICULIER').length;
+  document.getElementById('cli-s-contacts').textContent = CRM_DATA.filter(a=>a.clientId).length;
+
+  const cont = document.getElementById('clients-list');
+  if(!cont) return;
+  if(!data.length) {
+    const hasAny = CLIENTS_DB.length > 0;
+    cont.innerHTML = `<div class="empty"><span class="empty-icon">${hasAny?'🔍':'👥'}</span><p>${hasAny?'Aucun résultat pour ce filtre':'Aucun client — importez votre base Excel ou ajoutez manuellement'}</p></div>`;
+    document.getElementById('import-zone').style.display = CLIENTS_DB.length===0 ? 'block' : 'none';
+    return;
+  }
+  document.getElementById('import-zone').style.display = 'none';
+
+  const typeEmoji = {EHPAD:'🏥',CLINIQUE:'🏨',PARTICULIER:'🏠',AUTRE:'🏢'};
+  const typeColor = {EHPAD:'var(--purple)',CLINIQUE:'var(--accent)',PARTICULIER:'var(--green)',AUTRE:'var(--text2)'};
+  const typeBg    = {EHPAD:'var(--purple-l)',CLINIQUE:'var(--accent-l)',PARTICULIER:'var(--green-l)',AUTRE:'var(--bg)'};
+
+  // Compter contacts liés
+  const contactsParClient = {};
+  CRM_DATA.forEach(a=>{ if(a.clientId) contactsParClient[a.clientId]=(contactsParClient[a.clientId]||0)+1; });
+
+  cont.innerHTML = data.map(cl=>{
+    const initials = (cl.nom||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+    const nbContacts = contactsParClient[cl.id]||0;
+    return `<div class="client-card" onclick="ouvrirFicheClient('${cl.id}')">
+      <div class="client-avatar">${initials}</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-weight:700;font-size:15px">${cl.nom}</span>
+          <span class="tag" style="color:${typeColor[cl.type]||'var(--text2)'};background:${typeBg[cl.type]||'var(--bg)'}">${typeEmoji[cl.type]||'🏢'} ${cl.type||'—'}</span>
+          ${cl.ref?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">${cl.ref}</span>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
+          ${cl.tel?`<span><i class="fas fa-phone" style="margin-right:4px"></i>${cl.tel}</span>`:''}
+          ${cl.email?`<span><i class="fas fa-envelope" style="margin-right:4px"></i>${cl.email}</span>`:''}
+          ${cl.ville?`<span><i class="fas fa-map-marker-alt" style="margin-right:4px"></i>${cl.cp||''} ${cl.ville}</span>`:''}
+          ${cl.contact?`<span><i class="fas fa-user" style="margin-right:4px"></i>${cl.contact}</span>`:''}
+        </div>
+        ${nbContacts>0?`<div style="font-size:11px;color:var(--accent);margin-top:4px"><i class="fas fa-phone-volume" style="margin-right:4px"></i>${nbContacts} contact(s) enregistré(s)</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+        <div class="icon-btn" title="Nouvel appel" onclick="nouvelAppelClientById('${cl.id}')"><i class="fas fa-phone-alt"></i></div>
+        <div class="icon-btn danger" title="Supprimer" onclick="supprimerClient('${cl.id}')"><i class="fas fa-trash"></i></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveNewClient() {
+  const nom = document.getElementById('nc-nom')?.value?.trim();
+  if(!nom){ toast('Nom requis','error'); return; }
+  const cl = {
+    id: 'CLI-'+Date.now(),
+    dateCreation: new Date().toISOString(),
+    nom,
+    type:    document.getElementById('nc-type')?.value||'AUTRE',
+    tel:     document.getElementById('nc-tel')?.value?.trim()||'',
+    email:   document.getElementById('nc-email')?.value?.trim()||'',
+    adresse: document.getElementById('nc-adresse')?.value?.trim()||'',
+    cp:      document.getElementById('nc-cp')?.value?.trim()||'',
+    ville:   document.getElementById('nc-ville')?.value?.trim()||'',
+    contact: document.getElementById('nc-contact')?.value?.trim()||'',
+    ref:     document.getElementById('nc-ref')?.value?.trim()||'',
+    notes:   document.getElementById('nc-notes')?.value?.trim()||'',
+  };
+  CLIENTS_DB.unshift(cl);
+  saveDataAll();
+  closeModal('modal-add-client');
+  renderClients();
+  toast('Client '+nom+' ajouté','success');
+  ['nc-nom','nc-tel','nc-email','nc-adresse','nc-cp','nc-ville','nc-contact','nc-ref','nc-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+
+function supprimerClient(id) {
+  if(!confirm('Supprimer ce client ? Les contacts liés seront conservés.')) return;
+  CLIENTS_DB = CLIENTS_DB.filter(c=>c.id!==id);
+  saveDataAll(); renderClients();
+  toast('Client supprimé','warning');
+}
+
+function ouvrirFicheClient(id) {
+  const cl = CLIENTS_DB.find(c=>c.id===id);
+  if(!cl) return;
+  const contacts = CRM_DATA.filter(a=>a.clientId===id);
+  const fmtD = d=>{ try{return new Date(d).toLocaleDateString('fr-FR');}catch(e){return d||'—';} };
+  const typeEmoji = {EHPAD:'🏥',CLINIQUE:'🏨',PARTICULIER:'🏠',AUTRE:'🏢'};
+
+  document.getElementById('fiche-client-title').textContent = (typeEmoji[cl.type]||'👤')+' '+cl.nom;
+  document.getElementById('fiche-client-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div><div class="detail-label">📞 Téléphone</div><div class="detail-value" style="font-family:'DM Mono',monospace">${cl.tel||'—'}</div></div>
+      <div><div class="detail-label">📧 Email</div><div class="detail-value">${cl.email||'—'}</div></div>
+      <div><div class="detail-label">📍 Adresse</div><div class="detail-value">${cl.adresse||''} ${cl.cp||''} ${cl.ville||''||'—'}</div></div>
+      <div><div class="detail-label">👤 Contact principal</div><div class="detail-value">${cl.contact||'—'}</div></div>
+      ${cl.ref?`<div><div class="detail-label">🔖 Référence</div><div class="detail-value" style="font-family:'DM Mono',monospace">${cl.ref}</div></div>`:''}
+      ${cl.notes?`<div style="grid-column:1/-1"><div class="detail-label">📝 Notes</div><div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px">${cl.notes}</div></div>`:''}
+    </div>
+    <div>
+      <div class="detail-label" style="margin-bottom:10px">📋 Historique contacts (${contacts.length})</div>
+      ${contacts.length===0
+        ? '<div style="color:var(--text3);font-size:13px">Aucun contact enregistré pour ce client.</div>'
+        : contacts.map(a=>{
+            const tc=TYPE_CFG[a.type]||TYPE_CFG.AUTRE;
+            const sc=STATUT_CFG[a.statut]||STATUT_CFG.NOUVEAU;
+            return `<div class="history-item" style="border-left-color:${tc.color}">
+              <div class="h-date">${fmtD(a.dateCreation)} · ${tc.emoji} ${tc.label} · <span style="color:${sc.color}">${sc.label}</span></div>
+              ${a.resume}
+            </div>`;
+          }).join('')}
+    </div>`;
+  document.getElementById('modal-fiche-client').currentClientId = id;
+  openModal('modal-fiche-client');
+}
+
+function nouvelAppelClient() {
+  const id = document.getElementById('modal-fiche-client').currentClientId;
+  if(id) { closeModal('modal-fiche-client'); nouvelAppelClientById(id); }
+}
+
+function nouvelAppelClientById(id) {
+  const cl = CLIENTS_DB.find(c=>c.id===id);
+  if(!cl) return;
+  openNouvelAppel();
+  setTimeout(()=>{
+    document.getElementById('a-nom').value = cl.nom||'';
+    document.getElementById('a-tel').value = cl.tel||'';
+    document.getElementById('a-email').value = cl.email||'';
+    document.getElementById('a-structure').value = cl.type||'';
+    selectedClientId = id;
+    document.getElementById('a-client-search').value = cl.nom;
+    const cs = document.getElementById('client-selectionne');
+    if(cs) { cs.style.display='flex'; document.getElementById('cs-nom').textContent=cl.nom; document.getElementById('cs-detail').textContent=(cl.tel||'')+' · '+(cl.ville||''); }
+  },100);
+}
+
+// Recherche client dans le modal appel
+function rechercherClient(q) {
+  const dd = document.getElementById('client-suggestions');
+  if(!dd) return;
+  if(!q || q.length < 2) { dd.style.display='none'; return; }
+  const found = CLIENTS_DB.filter(cl=>{
+    const hay=[cl.nom,cl.tel,cl.email,cl.ville,cl.ref].join(' ').toLowerCase();
+    return hay.includes(q.toLowerCase());
+  }).slice(0,6);
+  if(!found.length) { dd.style.display='none'; return; }
+  dd.style.display='block';
+  dd.innerHTML = found.map(cl=>`
+    <div onclick="selectionnerClient('${cl.id}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--accent-l)'" onmouseout="this.style.background=''">
+      <div style="font-weight:700;font-size:13px">${cl.nom}</div>
+      <div style="font-size:11px;color:var(--text3)">${cl.tel||''} ${cl.ville?'· '+cl.ville:''}</div>
+    </div>`).join('');
+  setTimeout(()=>document.addEventListener('click',()=>dd.style.display='none',{once:true}),10);
+}
+
+function selectionnerClient(id) {
+  const cl = CLIENTS_DB.find(c=>c.id===id);
+  if(!cl) return;
+  selectedClientId = id;
+  document.getElementById('client-suggestions').style.display='none';
+  document.getElementById('a-client-search').value = cl.nom;
+  // Pré-remplir le formulaire
+  if(!document.getElementById('a-nom').value)    document.getElementById('a-nom').value    = cl.nom;
+  if(!document.getElementById('a-tel').value)    document.getElementById('a-tel').value    = cl.tel||'';
+  if(!document.getElementById('a-email').value)  document.getElementById('a-email').value  = cl.email||'';
+  if(!document.getElementById('a-structure').value) document.getElementById('a-structure').value = cl.type||'';
+  const cs = document.getElementById('client-selectionne');
+  if(cs) {
+    cs.style.display='flex';
+    document.getElementById('cs-nom').textContent    = cl.nom;
+    document.getElementById('cs-detail').textContent = [cl.tel,cl.ville].filter(Boolean).join(' · ');
+  }
+}
+
+function deselectionnerClient() {
+  selectedClientId = null;
+  document.getElementById('a-client-search').value='';
+  const cs = document.getElementById('client-selectionne');
+  if(cs) cs.style.display='none';
+}
+
+// ═══════════════════════════════════════════════════
+//  IMPORT EXCEL / CSV
+// ═══════════════════════════════════════════════════
+function dropExcel(event) {
+  event.preventDefault();
+  document.getElementById('import-zone').classList.remove('dragover');
+  const file = event.dataTransfer.files[0];
+  if(file) traiterFichierImport(file);
+}
+
+function importerExcel(input) {
+  const file = input.files[0];
+  if(!file) return;
+  traiterFichierImport(file);
+  input.value='';
+}
+
+function traiterFichierImport(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if(ext==='csv') {
+    const reader = new FileReader();
+    reader.onload = e => parseCSV(e.target.result);
+    reader.readAsText(file, 'UTF-8');
+  } else if(ext==='xlsx'||ext==='xls') {
+    // Utiliser SheetJS si disponible, sinon lire comme texte
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        // Tentative SheetJS (si chargé)
+        if(typeof XLSX !== 'undefined') {
+          const wb = XLSX.read(e.target.result, {type:'binary'});
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+          parseRows(rows);
+        } else {
+          toast('Pour les fichiers .xlsx, exportez en CSV depuis Excel et réimportez','warning');
+        }
+      } catch(err) { toast('Erreur lecture fichier: '+err.message,'error'); }
+    };
+    reader.readAsBinaryString(file);
+  } else {
+    toast('Format non supporté. Utilisez CSV ou XLSX','error');
+  }
+}
+
+function parseCSV(text) {
+  // Détecter séparateur (virgule ou point-virgule)
+  const sep = text.includes(';') ? ';' : ',';
+  const lines = text.split('
+').filter(l=>l.trim());
+  if(lines.length < 2) { toast('Fichier CSV vide ou invalide','error'); return; }
+  const headers = lines[0].split(sep).map(h=>h.trim().replace(/"/g,'').toUpperCase());
+  const rows = lines.slice(1).map(l=>l.split(sep).map(v=>v.trim().replace(/"/g,'')));
+  parseRows([headers, ...rows]);
+}
+
+function parseRows(rows) {
+  if(rows.length < 2) { toast('Aucune donnée trouvée','error'); return; }
+  const headers = rows[0].map(h=>String(h||'').toUpperCase().trim());
+  const find = (...keys) => { for(const k of keys){ const i=headers.findIndex(h=>h.includes(k)); if(i>=0) return i; } return -1; };
+
+  const iNom      = find('NOM','RAISON','NAME','CLIENT','STRUCTURE');
+  const iTel      = find('TEL','PHONE','PORTABLE','MOBILE');
+  const iEmail    = find('EMAIL','MAIL','COURRIEL');
+  const iAdresse  = find('ADRESSE','ADDRESS','RUE');
+  const iCP       = find('CP','CODE POSTAL','POSTAL');
+  const iVille    = find('VILLE','CITY','COMMUNE');
+  const iContact  = find('CONTACT','REFERENT','INTERLOCUTEUR');
+  const iType     = find('TYPE','CATEGORIE');
+  const iRef      = find('REF','REFERENCE','NUMERO','N°');
+
+  if(iNom < 0) { toast('Colonne "Nom" introuvable. Vérifiez les en-têtes','error'); return; }
+
+  let added=0, skipped=0;
+  const typeMap = {'EHPAD':'EHPAD','CLINIQUE':'CLINIQUE','CLINIQUE/HOPITAL':'CLINIQUE','HOPITAL':'CLINIQUE','PARTICULIER':'PARTICULIER','DOMICILE':'PARTICULIER'};
+
+  rows.slice(1).forEach(row => {
+    const nom = (row[iNom]||'').trim();
+    if(!nom) { skipped++; return; }
+    // Éviter doublons sur nom+tel
+    const tel = iTel>=0 ? (row[iTel]||'').trim() : '';
+    const exists = CLIENTS_DB.some(c=>c.nom.toLowerCase()===nom.toLowerCase()&&c.tel===tel);
+    if(exists) { skipped++; return; }
+
+    const rawType = iType>=0 ? (row[iType]||'').trim().toUpperCase() : '';
+    const type    = typeMap[rawType] || 'AUTRE';
+
+    CLIENTS_DB.push({
+      id:          'CLI-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),
+      dateCreation: new Date().toISOString(),
+      nom,
+      type,
+      tel,
+      email:   iEmail>=0   ? (row[iEmail]||'').trim()   : '',
+      adresse: iAdresse>=0 ? (row[iAdresse]||'').trim() : '',
+      cp:      iCP>=0      ? (row[iCP]||'').trim()      : '',
+      ville:   iVille>=0   ? (row[iVille]||'').trim()   : '',
+      contact: iContact>=0 ? (row[iContact]||'').trim() : '',
+      ref:     iRef>=0     ? (row[iRef]||'').trim()     : '',
+      notes:   '',
+      importé: true,
+    });
+    added++;
+  });
+
+  saveDataAll();
+  renderClients();
+  toast(`Import terminé : ${added} client(s) ajouté(s)${skipped?' · '+skipped+' ignoré(s) (doublons/vides)':''}`, added>0?'success':'warning');
+}
+
+function exportClientsCSV() {
+  if(!CLIENTS_DB.length){ toast('Aucun client à exporter','warning'); return; }
+  const headers=['Référence','Nom','Type','Téléphone','Email','Adresse','CP','Ville','Contact','Notes'];
+  const rows = CLIENTS_DB.map(c=>[c.ref||'',c.nom||'',c.type||'',c.tel||'',c.email||'',c.adresse||'',c.cp||'',c.ville||'',c.contact||'',c.notes||'']);
+  const csv = [headers, ...rows].map(r=>r.map(v=>'"'+(v||'').replace(/"/g,'""')+'"').join(';')).join('
+');
+  const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url;
+  a.download='clients_meditec_'+new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast('Export CSV téléchargé','success');
+}
+
+// ═══════════════════════════════════════════════════
+//  PARAMÈTRES
+// ═══════════════════════════════════════════════════
+let PARAM_CONTACTS = [
+  {nom:'Jean (Direction)',    email:'jean@meditec.fr',    role:'Direction',         color:'var(--accent)'},
+  {nom:'Équipe commerciale',  email:'commercial@meditec.fr',role:'Devis & RDV',     color:'var(--purple)'},
+  {nom:'Équipe technique',    email:'technique@meditec.fr', role:'SAV & Interv.',   color:'var(--red)'},
+  {nom:'Comptabilité',        email:'compta@meditec.fr',    role:'Pb. comptables',  color:'var(--orange)'},
+];
+let PARAM_AIGUILLAGE = {
+  RENSEIGNEMENT:['jean@meditec.fr'],
+  DEVIS:['commercial@meditec.fr','jean@meditec.fr'],
+  RDV:['commercial@meditec.fr'],
+  COMPTABLE:['compta@meditec.fr','jean@meditec.fr'],
+  SAV:['technique@meditec.fr'],
+  AUTRE:['jean@meditec.fr'],
+};
+let PARAM_SOCIETE = {};
+
+function loadParams() {
+  const pc = LS.load('param_contacts', null);
+  const pa = LS.load('param_aiguillage', null);
+  const ps = LS.load('param_societe', null);
+  if(pc) PARAM_CONTACTS   = pc;
+  if(pa) PARAM_AIGUILLAGE = pa;
+  if(ps) PARAM_SOCIETE    = ps;
+}
+
+function renderParamContacts() {
+  const cont = document.getElementById('contacts-equipe-list');
+  if(!cont) return;
+  cont.innerHTML = PARAM_CONTACTS.map((c,i)=>`
+    <div class="contact-row" id="contact-row-${i}">
+      <input type="text" class="form-input" value="${c.nom}" placeholder="Nom / Rôle" id="pn-nom-${i}">
+      <input type="email" class="form-input" value="${c.email}" placeholder="email@meditec.fr" id="pn-email-${i}">
+      <div class="icon-btn danger" onclick="removeContactRow(${i})"><i class="fas fa-trash"></i></div>
+    </div>`).join('');
+}
+
+function addContactRow() {
+  PARAM_CONTACTS.push({nom:'Nouveau contact',email:'',role:'',color:'var(--text2)'});
+  renderParamContacts();
+}
+function removeContactRow(i) {
+  PARAM_CONTACTS.splice(i,1);
+  renderParamContacts();
+}
+function saveParamContacts() {
+  PARAM_CONTACTS = PARAM_CONTACTS.map((c,i)=>({
+    ...c,
+    nom:   document.getElementById('pn-nom-'+i)?.value?.trim()||c.nom,
+    email: document.getElementById('pn-email-'+i)?.value?.trim()||c.email,
+  }));
+  LS.save('param_contacts', PARAM_CONTACTS);
+  // Mettre à jour les destinataires dans le modal appel
+  rebuildDestGrid();
+  toast('Contacts sauvegardés','success');
+}
+
+function rebuildDestGrid() {
+  const grid = document.getElementById('dest-grid');
+  if(!grid) return;
+  grid.innerHTML = PARAM_CONTACTS.map(c=>`
+    <div class="dest-btn" onclick="toggleDest(this,'${c.email}')">
+      <input type="checkbox" value="${c.email}">
+      <div>
+        <div class="dest-name">${c.nom}</div>
+        <div class="dest-role">${c.role||''}</div>
+        <div class="dest-email">${c.email}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderAiguillage() {
+  const cont = document.getElementById('aiguillage-list');
+  if(!cont) return;
+  const types = Object.entries(TYPE_CFG);
+  cont.innerHTML = types.map(([key,tc])=>{
+    const selected = PARAM_AIGUILLAGE[key]||[];
+    return `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span>${tc.emoji}</span> ${tc.label}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${PARAM_CONTACTS.map(c=>`
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:${selected.includes(c.email)?'var(--accent-l)':'var(--bg)'}">
+            <input type="checkbox" ${selected.includes(c.email)?'checked':''} data-type="${key}" data-email="${c.email}" onchange="updateAiguillage(this)" style="accent-color:var(--accent)">
+            ${c.nom}
+          </label>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateAiguillage(cb) {
+  const type  = cb.dataset.type;
+  const email = cb.dataset.email;
+  if(!PARAM_AIGUILLAGE[type]) PARAM_AIGUILLAGE[type]=[];
+  if(cb.checked) { if(!PARAM_AIGUILLAGE[type].includes(email)) PARAM_AIGUILLAGE[type].push(email); }
+  else PARAM_AIGUILLAGE[type] = PARAM_AIGUILLAGE[type].filter(e=>e!==email);
+}
+
+function saveAiguillage() {
+  LS.save('param_aiguillage', PARAM_AIGUILLAGE);
+  toast('Règles d'aiguillage sauvegardées','success');
+}
+
+function loadParamSociete() {
+  const fields=['societe','tel','email','adresse'];
+  fields.forEach(f=>{ const el=document.getElementById('param-'+f); if(el) el.value=PARAM_SOCIETE[f]||''; });
+}
+
+function saveParamSociete() {
+  ['societe','tel','email','adresse'].forEach(f=>{
+    const el=document.getElementById('param-'+f); if(el) PARAM_SOCIETE[f]=el.value.trim();
+  });
+  LS.save('param_societe', PARAM_SOCIETE);
+  toast('Informations société sauvegardées','success');
+}
+
+// ═══════════════════════════════════════════════════
+//  SAUVEGARDE COMBINÉE
+// ═══════════════════════════════════════════════════
+async function saveDataAll() {
+  LS.save('appels',     CRM_DATA);
+  LS.save('clients_db', CLIENTS_DB);
+  if(JB_OK) {
+    try { await jbSave(JB_BIN_CRM, { appels: CRM_DATA, clients: CLIENTS_DB }); }
+    catch(e) { console.warn('JSONBin save failed'); }
+  }
+}
+
+function exportBackupCRM() {
+  const data = {
+    version: '2.0', date: new Date().toISOString(),
+    appels: CRM_DATA, clients: CLIENTS_DB,
+    contacts: PARAM_CONTACTS, aiguillage: PARAM_AIGUILLAGE, societe: PARAM_SOCIETE
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a'); a.href=url;
+  a.download = 'crm_meditec_backup_'+new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')+'.json';
+  a.click(); URL.revokeObjectURL(url);
+  toast('Sauvegarde téléchargée','success');
+}
+
+function importBackupCRM(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if(d.appels)    { CRM_DATA     = d.appels;    LS.save('appels',CRM_DATA); }
+      if(d.clients)   { CLIENTS_DB   = d.clients;   LS.save('clients_db',CLIENTS_DB); }
+      if(d.contacts)  { PARAM_CONTACTS   = d.contacts;   LS.save('param_contacts',PARAM_CONTACTS); }
+      if(d.aiguillage){ PARAM_AIGUILLAGE = d.aiguillage; LS.save('param_aiguillage',PARAM_AIGUILLAGE); }
+      if(d.societe)   { PARAM_SOCIETE    = d.societe;    LS.save('param_societe',PARAM_SOCIETE); }
+      renderAll(); renderClients();
+      toast('Restauration réussie — '+CRM_DATA.length+' appels · '+CLIENTS_DB.length+' clients','success');
+    } catch(err){ toast('Erreur fichier: '+err.message,'error'); }
+  };
+  reader.readAsText(file); input.value='';
+}
+
+// Surcharger autoSelectDest pour utiliser PARAM_AIGUILLAGE dynamique
+function autoSelectDest() {
+  const emails = PARAM_AIGUILLAGE[selectedType]||[];
+  document.querySelectorAll('.dest-btn').forEach(btn=>{
+    const email = btn.querySelector('input')?.value||'';
+    const sel = emails.includes(email);
+    btn.classList.toggle('selected',sel);
+    const cb = btn.querySelector('input'); if(cb) cb.checked=sel;
+    if(sel) selectedDests.add(email); else selectedDests.delete(email);
+  });
+}
+
+// Override saveAppel pour inclure canal et clientId
+const _origSaveAppel = saveAppel;
+saveAppel = async function(sendEmail) {
+  // Injecter le canal dans l'appel avant de sauvegarder
+  const origUnshift = Array.prototype.unshift;
+  // On va ajouter canal et clientId après création
+  await _origSaveAppel(sendEmail);
+  // Patcher le dernier appel ajouté
+  if(CRM_DATA.length > 0) {
+    CRM_DATA[0].canal    = selectedCanal || 'TEL';
+    CRM_DATA[0].clientId = selectedClientId || null;
+    await saveDataAll();
+    // Reset
+    selectedClientId = null;
+    deselectionnerClient();
+    // Reset canal
+    document.querySelectorAll('#canal-grid .urgence-btn').forEach(b=>b.className='urgence-btn');
+    const telBtn = document.querySelector('#canal-grid [data-canal="TEL"]');
+    if(telBtn) telBtn.classList.add('selected-normal');
+    selectedCanal = 'TEL';
+  }
+};
+
+// ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
 const savedUser = sessionStorage.getItem('crm_user');
@@ -1339,8 +2162,17 @@ if(savedUser && USERS[savedUser]) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('show');
   document.getElementById('user-label').textContent = savedUser;
+  loadParams();
+  loadClients();
   loadData();
 }
+
+// Patcher doLogin aussi
+const _origDoLogin = doLogin;
+doLogin = function() {
+  _origDoLogin();
+  if(currentUser) { loadParams(); loadClients(); }
+};
 </script>
 </body>
 </html>
