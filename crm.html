@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEDITEC CRM — Gestion des appels</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+  --bg:       #f2f4f7;
+  --surface:  #ffffff;
+  --border:   #e4e8f0;
+  --border2:  #c8d0e0;
+  --accent:   #2563eb;
+  --accent-l: #eff4ff;
+  --green:    #059669;
+  --green-l:  #ecfdf5;
+  --orange:   #d97706;
+  --orange-l: #fffbeb;
+  --red:      #dc2626;
+  --red-l:    #fef2f2;
+  --purple:   #7c3aed;
+  --purple-l: #f5f3ff;
+  --teal:     #0891b2;
+  --teal-l:   #ecfeff;
+  --text:     #0f172a;
+  --text2:    #475569;
+  --text3:    #94a3b8;
+  --shadow:   0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --radius:   12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ── LOGIN ─────────────────────────────────── */
+#login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #2563eb 100%);
+  position: relative;
+  overflow: hidden;
+}
+#login-screen::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: rgba(37,99,235,.15);
+  top: -200px; right: -200px;
+}
+#login-screen::after {
+  content: '';
+  position: absolute;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: rgba(124,58,237,.1);
+  bottom: -100px; left: -100px;
+}
+.login-card {
+  background: rgba(255,255,255,.97);
+  border-radius: 20px;
+  padding: 48px 44px 40px;
+  width: 420px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.3);
+  position: relative; z-index: 1;
+}
+.login-brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.login-brand-icon {
+  width: 60px; height: 60px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; margin: 0 auto 16px;
+  box-shadow: 0 8px 24px rgba(37,99,235,.35);
+}
+.login-brand h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800;
+  color: #0f172a; letter-spacing: -0.5px;
+}
+.login-brand p { font-size: 13px; color: var(--text3); margin-top: 3px; }
+.login-err {
+  background: #fef2f2; border: 1px solid #fecaca;
+  color: #dc2626; border-radius: 8px;
+  padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none;
+}
+.login-err.show { display: block; }
+.field { margin-bottom: 16px; }
+.field label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: var(--text2); margin-bottom: 6px; letter-spacing: .3px;
+}
+.field input {
+  width: 100%; border: 2px solid var(--border);
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  outline: none; transition: border-color .2s; color: var(--text);
+}
+.field input:focus { border-color: var(--accent); }
+.btn-login {
+  width: 100%; background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff; border: none; border-radius: 10px;
+  padding: 14px; font-size: 15px; font-weight: 700;
+  font-family: 'DM Sans', sans-serif; cursor: pointer;
+  transition: opacity .2s, transform .1s; margin-top: 4px;
+}
+.btn-login:hover { opacity: .92; transform: translateY(-1px); }
+
+/* ── APP ─────────────────────────────────── */
+#app { display: none; min-height: 100vh; }
+#app.show { display: flex; flex-direction: column; }
+
+/* ── TOPBAR ─────────────────────────────── */
+.topbar {
+  height: 60px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px; gap: 16px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 0 var(--border), var(--shadow);
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 10px;
+}
+.topbar-logo {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.topbar-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; }
+.topbar-subtitle { font-size: 11px; color: var(--text3); margin-top: -1px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.alert-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--red);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%,100%{ box-shadow: 0 0 0 0 rgba(220,38,38,.4); }
+  50%{ box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+}
+.topbar-user {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500;
+}
+.btn-logout {
+  background: none; border: none; color: var(--text3);
+  cursor: pointer; font-size: 13px; transition: color .2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.btn-logout:hover { color: var(--red); }
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; font-family: 'DM Sans',sans-serif; white-space:nowrap;}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; box-shadow: 0 4px 16px rgba(37,99,235,.35); }
+.btn-outline { background: #fff; border: 1.5px solid var(--border2); color: var(--text2); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+.btn-ghost { background: none; border: none; color: var(--text3); padding: 7px 10px; }
+.btn-ghost:hover { color: var(--accent); background: var(--accent-l); border-radius: 8px; }
+
+/* ── BODY ───────────────────────────────── */
+.body { flex: 1; max-width: 1280px; margin: 0 auto; padding: 28px 24px; width: 100%; }
+
+/* ── RAPPELS DU JOUR ─────────────────────── */
+#rappels-banner { margin-bottom: 20px; }
+.rappel-alert {
+  background: linear-gradient(90deg, #fef3c7, #fffbeb);
+  border: 1.5px solid #f59e0b;
+  border-radius: 12px; padding: 14px 18px;
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-bottom: 8px;
+}
+.rappel-alert-icon { color: #d97706; font-size: 18px; margin-top: 1px; flex-shrink: 0; }
+.rappel-alert-body { flex: 1; }
+.rappel-alert-title { font-weight: 700; color: #92400e; font-size: 13px; }
+.rappel-alert-sub { font-size: 12px; color: #b45309; margin-top: 2px; }
+
+/* ── STATS ───────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-box {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  position: relative; overflow: hidden;
+  cursor: pointer; transition: all .2s;
+}
+.stat-box:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+.stat-box.active { border-color: var(--accent); background: var(--accent-l); }
+.stat-box::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: var(--c, var(--accent));
+}
+.stat-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-bottom: 10px;
+  background: var(--cl, var(--accent-l));
+  color: var(--c, var(--accent));
+}
+.stat-val { font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 500; line-height: 1; }
+.stat-lbl { font-size: 11px; color: var(--text3); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+/* ── TOOLBAR ─────────────────────────────── */
+.toolbar {
+  display: flex; gap: 10px; align-items: center;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 9px 14px;
+  transition: border-color .2s; flex: 1; min-width: 200px;
+}
+.search-box:focus-within { border-color: var(--accent); }
+.search-box input {
+  border: none; outline: none; background: none;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  color: var(--text); width: 100%;
+}
+.search-box input::placeholder { color: var(--text3); }
+.filter-sel {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 9px; padding: 9px 12px; font-size: 13px;
+  font-family: 'DM Sans', sans-serif; color: var(--text);
+  cursor: pointer; outline: none; transition: border-color .2s;
+}
+.filter-sel:focus { border-color: var(--accent); }
+
+/* ── CARDS LISTE ─────────────────────────── */
+.cards-list { display: flex; flex-direction: column; gap: 10px; }
+.contact-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 14px; align-items: center;
+  transition: all .2s; cursor: pointer;
+}
+.contact-card:hover { border-color: var(--border2); box-shadow: var(--shadow); }
+.contact-card.urgent { border-left: 4px solid var(--red); }
+.contact-card.rappel-today { border-left: 4px solid var(--orange); }
+.type-badge {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.card-main { min-width: 0; }
+.card-name { font-weight: 700; font-size: 15px; }
+.card-tel { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text3); margin-top: 1px; }
+.card-resume {
+  font-size: 13px; color: var(--text2);
+  margin-top: 4px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.card-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.card-date { font-size: 12px; color: var(--text3); white-space: nowrap; }
+.card-actions { display: flex; gap: 6px; }
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
+  white-space: nowrap;
+}
+.urgence-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ── ICON BUTTON ─────────────────────────── */
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--bg);
+  color: var(--text3); display: inline-flex;
+  align-items: center; justify-content: center;
+  cursor: pointer; font-size: 13px; transition: all .2s;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.icon-btn.danger:hover { border-color: var(--red); color: var(--red); }
+.icon-btn.green:hover { border-color: var(--green); color: var(--green); }
+
+/* ── MODAL ───────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,.6);
+  backdrop-filter: blur(6px);
+  z-index: 1000; display: none;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 18px;
+  width: 100%; max-width: 640px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: modalIn .2s ease;
+}
+.modal.wide { max-width: 780px; }
+@keyframes modalIn {
+  from { transform: translateY(12px) scale(.97); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.modal-header {
+  padding: 22px 26px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; background: var(--surface); z-index: 1;
+  padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  color: var(--text3); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; transition: all .2s;
+}
+.modal-close:hover { color: var(--red); border-color: var(--red); }
+.modal-body { padding: 24px 26px; }
+.modal-footer {
+  padding: 16px 26px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 10px;
+}
+
+/* ── FORM ────────────────────────────────── */
+.form-section {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--accent);
+  margin: 20px 0 12px; display: flex; align-items: center; gap: 8px;
+}
+.form-section::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.form-input, .form-select, .form-textarea {
+  border: 1.5px solid var(--border); border-radius: 9px;
+  padding: 10px 13px; font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text); background: #fafbfc;
+  outline: none; transition: border-color .2s; width: 100%;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--accent); background: #fff;
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+
+/* ── TYPE SELECTOR ───────────────────────── */
+.type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+.type-btn {
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 12px 8px; text-align: center; cursor: pointer;
+  transition: all .2s; background: #fafbfc;
+}
+.type-btn:hover { border-color: var(--border2); }
+.type-btn.selected { border-width: 2px; }
+.type-btn .type-emoji { font-size: 22px; display: block; margin-bottom: 5px; }
+.type-btn .type-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+
+/* ── URGENCE SELECTOR ────────────────────── */
+.urgence-row { display: flex; gap: 8px; }
+.urgence-btn {
+  flex: 1; padding: 9px; border-radius: 9px;
+  border: 1.5px solid var(--border); cursor: pointer;
+  text-align: center; font-size: 12px; font-weight: 700;
+  transition: all .2s; background: #fafbfc; display: flex;
+  align-items: center; justify-content: center; gap: 6px;
+}
+.urgence-btn.selected-normal { border-color: var(--green); background: var(--green-l); color: var(--green); }
+.urgence-btn.selected-urgent { border-color: var(--orange); background: var(--orange-l); color: var(--orange); }
+.urgence-btn.selected-tres-urgent { border-color: var(--red); background: var(--red-l); color: var(--red); }
+
+/* ── DESTINATAIRES EMAIL ─────────────────── */
+.dest-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+.dest-btn {
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; cursor: pointer; transition: all .2s;
+  display: flex; align-items: center; gap: 10px;
+  background: #fafbfc; text-align: left;
+}
+.dest-btn:hover { border-color: var(--border2); }
+.dest-btn.selected { border-color: var(--accent); background: var(--accent-l); }
+.dest-btn input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; flex-shrink:0; }
+.dest-name { font-size: 13px; font-weight: 600; }
+.dest-role { font-size: 11px; color: var(--text3); }
+.dest-email { font-size: 11px; color: var(--accent); font-family: 'DM Mono', monospace; }
+
+/* ── FICHE DETAIL ────────────────────────── */
+.detail-section { margin-bottom: 20px; }
+.detail-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); margin-bottom: 6px; }
+.detail-value { font-size: 14px; color: var(--text); }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.history-item {
+  padding: 10px 14px; border-left: 2px solid var(--border);
+  margin-bottom: 8px; font-size: 13px;
+}
+.history-item .h-date { font-size: 11px; color: var(--text3); margin-bottom: 2px; }
+
+/* ── EMPTY ───────────────────────────────── */
+.empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+.empty-icon { font-size: 44px; opacity: .25; display: block; margin-bottom: 12px; }
+
+/* ── TOAST ───────────────────────────────── */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 18px; border-radius: 10px;
+  font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow-lg); border: 1px solid;
+  animation: toastIn .3s ease; min-width: 260px;
+}
+.toast.success { background: var(--green-l); border-color: #6ee7b7; color: var(--green); }
+.toast.error   { background: var(--red-l);   border-color: #fca5a5; color: var(--red); }
+.toast.info    { background: var(--accent-l);border-color: #93c5fd; color: var(--accent); }
+.toast.warning { background: var(--orange-l);border-color: #fcd34d; color: var(--orange); }
+@keyframes toastIn { from { transform: translateX(60px); opacity: 0; } }
+
+/* ── RESPONSIVE ──────────────────────────── */
+@media(max-width:700px) {
+  .stats-row { grid-template-columns: repeat(3,1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+  .type-grid { grid-template-columns: repeat(3,1fr); }
+  .contact-card { grid-template-columns: auto 1fr; }
+  .card-meta, .card-actions { display: none; }
+}
+
+/* ── PRINT RAPPORT ───────────────────────── */
+@media print {
+  body * { visibility: hidden; }
+  #print-zone, #print-zone * { visibility: visible; }
+  #print-zone { position: absolute; top: 0; left: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     LOGIN
+══════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-brand-icon">📞</div>
+      <h1>MEDITEC CRM</h1>
+      <p>Gestion des appels &amp; contacts entrants</p>
+    </div>
+    <div class="login-err" id="login-err">Identifiant ou mot de passe incorrect.</div>
+    <div class="field">
+      <label>Identifiant</label>
+      <input type="text" id="u" placeholder="votre identifiant" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" id="p" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Se connecter →</button>
+    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:14px">🔒 Accès réservé à l'équipe MEDITEC</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     APP
+══════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">📞</div>
+      <div>
+        <div class="topbar-title">MEDITEC CRM</div>
+        <div class="topbar-subtitle">Gestion des appels &amp; contacts</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div id="rappel-dot-wrap" style="display:none;align-items:center;gap:6px;background:var(--orange-l);border:1px solid #fcd34d;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--orange)">
+        <div class="alert-dot" style="background:var(--orange)"></div>
+        <span id="rappel-count">0</span> rappel(s) aujourd'hui
+      </div>
+      <button class="btn btn-primary" onclick="openNouvelAppel()">
+        <i class="fas fa-phone-alt"></i> Nouvel appel
+      </button>
+      <div class="topbar-user">
+        <i class="fas fa-user-circle" style="color:var(--accent)"></i>
+        <span id="user-label">—</span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">
+        <i class="fas fa-sign-out-alt"></i> Déco
+      </button>
+      <a href="https://78500meditec.github.io/psdm/" style="font-size:12px;color:var(--text3);text-decoration:none;padding:6px 10px;border:1px solid var(--border);border-radius:8px">
+        <i class="fas fa-arrow-left"></i> PSDM
+      </a>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- RAPPELS DU JOUR -->
+    <div id="rappels-banner"></div>
+
+    <!-- STATS -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-box" style="--c:var(--accent);--cl:var(--accent-l)" onclick="filterStat('')">
+        <div class="stat-icon"><i class="fas fa-phone-volume"></i></div>
+        <div class="stat-val" id="s-total">0</div>
+        <div class="stat-lbl">Total appels</div>
+        <div class="stat-sub" id="s-sub">ce mois</div>
+      </div>
+      <div class="stat-box" style="--c:var(--red);--cl:var(--red-l)" onclick="filterStat('NOUVEAU')">
+        <div class="stat-icon"><i class="fas fa-circle-exclamation"></i></div>
+        <div class="stat-val" id="s-new">0</div>
+        <div class="stat-lbl">Nouveaux</div>
+        <div class="stat-sub">À traiter</div>
+      </div>
+      <div class="stat-box" style="--c:var(--orange);--cl:var(--orange-l)" onclick="filterStat('EN_COURS')">
+        <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+        <div class="stat-val" id="s-encours">0</div>
+        <div class="stat-lbl">En cours</div>
+        <div class="stat-sub">Suivi actif</div>
+      </div>
+      <div class="stat-box" style="--c:var(--green);--cl:var(--green-l)" onclick="filterStat('TRAITE')">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-val" id="s-traite">0</div>
+        <div class="stat-lbl">Traités</div>
+        <div class="stat-sub">Clôturés</div>
+      </div>
+      <div class="stat-box" style="--c:var(--purple);--cl:var(--purple-l)" onclick="filterStat('RAPPEL')">
+        <div class="stat-icon"><i class="fas fa-bell"></i></div>
+        <div class="stat-val" id="s-rappel">0</div>
+        <div class="stat-lbl">Rappels</div>
+        <div class="stat-sub">Planifiés</div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-box">
+        <i class="fas fa-search" style="color:var(--text3)"></i>
+        <input type="text" id="search" placeholder="Nom, téléphone, structure, résumé..." oninput="renderList()">
+      </div>
+      <select class="filter-sel" id="f-type" onchange="renderList()">
+        <option value="">Tous types</option>
+        <option value="RENSEIGNEMENT">Renseignement</option>
+        <option value="DEVIS">Demande devis</option>
+        <option value="RDV">Demande RDV</option>
+        <option value="COMPTABLE">Problème comptable</option>
+        <option value="SAV">SAV / Panne</option>
+      </select>
+      <select class="filter-sel" id="f-urgence" onchange="renderList()">
+        <option value="">Toutes urgences</option>
+        <option value="TRES_URGENT">🔴 Très urgent</option>
+        <option value="URGENT">🟠 Urgent</option>
+        <option value="NORMAL">🟢 Normal</option>
+      </select>
+      <select class="filter-sel" id="f-statut" onchange="renderList()">
+        <option value="">Tous statuts</option>
+        <option value="NOUVEAU">Nouveau</option>
+        <option value="EN_COURS">En cours</option>
+        <option value="RAPPEL">Rappel planifié</option>
+        <option value="TRAITE">Traité</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="exportCRMEmail()"><i class="fas fa-envelope"></i> Export</button>
+    </div>
+
+    <!-- LISTE -->
+    <div class="cards-list" id="cards-list">
+      <div class="empty">
+        <span class="empty-icon">📞</span>
+        <p>Aucun appel enregistré — cliquez <strong>Nouvel appel</strong></p>
+      </div>
+    </div>
+
+  </div><!-- /body -->
+</div><!-- /app -->
+
+<!-- ══════════════════════════════════════════
+     MODAL NOUVEL APPEL
+══════════════════════════════════════════ -->
+<div class="overlay" id="modal-appel">
+<div class="modal wide">
+  <div class="modal-header">
+    <div class="modal-title">📞 Enregistrer un appel</div>
+    <div class="modal-close" onclick="closeModal('modal-appel')"><i class="fas fa-times"></i></div>
+  </div>
+  <div class="modal-body">
+
+    <!-- TYPE -->
+    <div class="form-section"><i class="fas fa-tag"></i> Type de contact</div>
+    <div class="type-grid" id="type-grid">
+      <div class="type-btn" data-type="RENSEIGNEMENT" onclick="selectType(this)" style="--bc:#0891b2;--bl:var(--teal-l);--tc:var(--teal)">
+        <span class="type-emoji">💬</span>
+        <span class="type-name" style="color:var(--teal)">Renseignement</span>
+      </div>
+      <div class="type-btn" data-type="DEVIS" onclick="selectType(this)" style="--bc:var(--purple);--bl:var(--purple-l);--tc:var(--purple)">
+        <span class="type-emoji">💰</span>
+        <span class="type-name" style="color:var(--purple)">Demande devis</span>
+      </div>
+      <div class="type-btn" data-type="RDV" onclick="selectType(this)" style="--bc:var(--accent);--bl:var(--accent-l);--tc:var(--accent)">
+        <span class="type-emoji">📅</span>
+        <span class="type-name" style="color:var(--accent)">Rendez-vous</span>
+      </div>
+      <div class="type-btn" data-type="COMPTABLE" onclick="selectType(this)" style="--bc:var(--orange);--bl:var(--orange-l);--tc:var(--orange)">
+        <span class="type-emoji">📊</span>
+        <span class="type-name" style="color:var(--orange)">Pb. comptable</span>
+      </div>
+      <div class="type-btn" data-type="SAV" onclick="selectType(this)" style="--bc:var(--red);--bl:var(--red-l);--tc:var(--red)">
+        <span class="type-emoji">🔧</span>
+        <span class="type-name" style="color:var(--red)">SAV / Panne</span>
+      </div>
+      <div class="type-btn" data-type="AUTRE" onclick="selectType(this)" style="--bc:var(--text2);--bl:var(--bg);--tc:var(--text2)">
+        <span class="type-emoji">📋</span>
+        <span class="type-name" style="color:var(--text2)">Autre</span>
+      </div>
+    </div>
+
+    <!-- APPELANT -->
+    <div class="form-section"><i class="fas fa-user"></i> Appelant</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <div class="form-label">Nom *</div>
+        <input type="text" class="form-input" id="a-nom" placeholder="Nom Prénom">
+      </div>
+      <div class="form-group">
+        <div class="form-label">Téléphone *</div>
+        <input type="tel" class="form-input" id="a-tel" placeholder="06 12 34 56 78">
+      </div>
+      <div class="form-group">
+        <div class="form-label">Email</div>
+        <input type="email" class="form-input" id="a-email" placeholder="email@structure.fr">
+      </div>
+      <div class="form-group">
+        <div class="form-label">Structure / Établissement</div>
+        <input type="text" class="form-input" id="a-structure" placeholder="ex: EHPAD du Soleil, particulier...">
+      </div>
+    </div>
+
+    <!-- DEMANDE -->
+    <div class="form-section"><i class="fas fa-comment-dots"></i> Demande</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <div class="form-label">Résumé de la demande *</div>
+        <textarea class="form-textarea" id="a-resume" placeholder="Décrivez en quelques mots l'objet de l'appel..." style="min-height:80px"></textarea>
+      </div>
+      <div class="form-group" id="a-equip-wrap" style="display:none">
+        <div class="form-label">Équipement concerné</div>
+        <input type="text" class="form-input" id="a-equip" placeholder="ID ou description équipement">
+      </div>
+      <div class="form-group" id="a-devis-wrap" style="display:none">
+        <div class="form-label">Matériel souhaité</div>
+        <input type="text" class="form-input" id="a-devis-mat" placeholder="ex: Lit médicalisé, fauteuil électrique...">
+      </div>
+    </div>
+
+    <!-- URGENCE -->
+    <div class="form-section"><i class="fas fa-fire"></i> Urgence</div>
+    <div class="urgence-row">
+      <div class="urgence-btn" data-u="NORMAL" onclick="selectUrgence(this)"><span>🟢</span> Normal</div>
+      <div class="urgence-btn" data-u="URGENT" onclick="selectUrgence(this)"><span>🟠</span> Urgent</div>
+      <div class="urgence-btn" data-u="TRES_URGENT" onclick="selectUrgence(this)"><span>🔴</span> Très urgent</div>
+    </div>
+
+    <!-- SUIVI -->
+    <div class="form-section"><i class="fas fa-calendar-check"></i> Suivi</div>
+    <div class="form-grid three">
+      <div class="form-group">
+        <div class="form-label">Pris par</div>
+        <select class="form-select" id="a-prisby">
+          <option value="admin">Admin (Jean)</option>
+          <option value="commercial1">Commercial 1</option>
+          <option value="commercial2">Commercial 2</option>
+          <option value="tech1">Tech 1</option>
+          <option value="tech2">Tech 2</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Statut</div>
+        <select class="form-select" id="a-statut">
+          <option value="NOUVEAU">🔴 Nouveau</option>
+          <option value="EN_COURS">🟠 En cours</option>
+          <option value="RAPPEL">🔔 Rappel planifié</option>
+          <option value="TRAITE">🟢 Traité</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Date de rappel</div>
+        <input type="date" class="form-input" id="a-rappel">
+      </div>
+      <div class="form-group full">
+        <div class="form-label">Notes internes (non envoyées)</div>
+        <textarea class="form-textarea" id="a-notes" placeholder="Notes pour l'équipe..." style="min-height:60px"></textarea>
+      </div>
+    </div>
+
+    <!-- DESTINATAIRES EMAIL -->
+    <div class="form-section"><i class="fas fa-paper-plane"></i> Notifier par email</div>
+    <div class="dest-grid" id="dest-grid">
+      <div class="dest-btn" onclick="toggleDest(this,'jean@meditec.fr')">
+        <input type="checkbox" value="jean@meditec.fr">
+        <div>
+          <div class="dest-name">Jean (Admin)</div>
+          <div class="dest-role">Direction</div>
+          <div class="dest-email">jean@meditec.fr</div>
+        </div>
+      </div>
+      <div class="dest-btn" onclick="toggleDest(this,'commercial@meditec.fr')">
+        <input type="checkbox" value="commercial@meditec.fr">
+        <div>
+          <div class="dest-name">Équipe commerciale</div>
+          <div class="dest-role">Devis &amp; RDV</div>
+          <div class="dest-email">commercial@meditec.fr</div>
+        </div>
+      </div>
+      <div class="dest-btn" onclick="toggleDest(this,'technique@meditec.fr')">
+        <input type="checkbox" value="technique@meditec.fr">
+        <div>
+          <div class="dest-name">Équipe technique</div>
+          <div class="dest-role">SAV &amp; Interventions</div>
+          <div class="dest-email">technique@meditec.fr</div>
+        </div>
+      </div>
+      <div class="dest-btn" onclick="toggleDest(this,'compta@meditec.fr')">
+        <input type="checkbox" value="compta@meditec.fr">
+        <div>
+          <div class="dest-name">Comptabilité</div>
+          <div class="dest-role">Pb. comptables &amp; factures</div>
+          <div class="dest-email">compta@meditec.fr</div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-top:8px">
+      <i class="fas fa-info-circle"></i> L'email s'ouvrira dans Gmail — cliquez Envoyer dans Gmail pour finaliser.
+    </p>
+
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeModal('modal-appel')">Annuler</button>
+    <button class="btn btn-outline" onclick="saveAppel(false)"><i class="fas fa-save"></i> Sauvegarder sans email</button>
+    <button class="btn btn-primary" onclick="saveAppel(true)"><i class="fas fa-paper-plane"></i> Sauvegarder &amp; notifier</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL FICHE DETAIL
+══════════════════════════════════════════ -->
+<div class="overlay" id="modal-fiche">
+<div class="modal wide">
+  <div class="modal-header">
+    <div class="modal-title" id="fiche-title">Fiche appel</div>
+    <div class="modal-close" onclick="closeModal('modal-fiche')"><i class="fas fa-times"></i></div>
+  </div>
+  <div class="modal-body" id="fiche-body"></div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeModal('modal-fiche')">Fermer</button>
+    <button class="btn btn-outline" id="fiche-email-btn"><i class="fas fa-envelope"></i> Renvoyer email</button>
+    <button class="btn btn-outline" onclick="imprimerFiche()"><i class="fas fa-print"></i> Imprimer</button>
+    <button class="btn btn-primary" id="fiche-traiter-btn"><i class="fas fa-check"></i> Marquer traité</button>
+  </div>
+</div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════
+const USERS = {
+  'admin':    'Meditec2024!',
+  'jean':     'Meditec2024!',
+  'commercial1':'Com2024!',
+  'commercial2':'Com2024B!',
+  'tech1':    'Tech2024!',
+  'tech2':    'Tech2024B!',
+};
+
+// JSONBin — créez un bin CRM sur jsonbin.io et collez l'ID ici
+const JB_KEY = '$2a$10$5zO6qG217JnGLugyn8VrNesbvja1Yo8gLVIHtCTUWJlqwsMJefW7e';
+const JB_BIN_CRM = 'VOTRE_BIN_CRM_ICI'; // ← À remplacer
+const JB_OK = JB_BIN_CRM !== 'VOTRE_BIN_CRM_ICI';
+
+const jbGet = async (id) => {
+  const r = await fetch('https://api.jsonbin.io/v3/b/'+id+'/latest',{headers:{'X-Master-Key':JB_KEY}});
+  const d = await r.json(); return d.record || {};
+};
+const jbSave = async (id, data) => {
+  await fetch('https://api.jsonbin.io/v3/b/'+id,{
+    method:'PUT', headers:{'Content-Type':'application/json','X-Master-Key':JB_KEY},
+    body: JSON.stringify(data)
+  });
+};
+
+// LocalStorage fallback
+const LS = {
+  save:(k,v)=>{ try{ localStorage.setItem('crm_'+k,JSON.stringify(v)); }catch(e){} },
+  load:(k,d=[])=>{ try{ const v=localStorage.getItem('crm_'+k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+};
+
+// ═══════════════════════════════════════════════════
+//  DONNÉES
+// ═══════════════════════════════════════════════════
+let CRM_DATA  = [];
+let currentUser = null;
+let currentFicheId = null;
+let activeStatFilter = '';
+
+const TYPE_CFG = {
+  RENSEIGNEMENT:{ emoji:'💬', label:'Renseignement',  color:'var(--teal)',   bg:'var(--teal-l)' },
+  DEVIS:        { emoji:'💰', label:'Demande devis',   color:'var(--purple)', bg:'var(--purple-l)' },
+  RDV:          { emoji:'📅', label:'Rendez-vous',     color:'var(--accent)', bg:'var(--accent-l)' },
+  COMPTABLE:    { emoji:'📊', label:'Pb. comptable',   color:'var(--orange)', bg:'var(--orange-l)' },
+  SAV:          { emoji:'🔧', label:'SAV / Panne',     color:'var(--red)',    bg:'var(--red-l)' },
+  AUTRE:        { emoji:'📋', label:'Autre',           color:'var(--text2)',  bg:'var(--bg)' },
+};
+const STATUT_CFG = {
+  NOUVEAU:   { label:'Nouveau',          color:'var(--red)',    bg:'var(--red-l)' },
+  EN_COURS:  { label:'En cours',         color:'var(--orange)', bg:'var(--orange-l)' },
+  RAPPEL:    { label:'Rappel planifié',  color:'var(--purple)', bg:'var(--purple-l)' },
+  TRAITE:    { label:'Traité',           color:'var(--green)',  bg:'var(--green-l)' },
+};
+const URGENCE_CFG = {
+  NORMAL:       { dot:'🟢', label:'Normal',      color:'var(--green)' },
+  URGENT:       { dot:'🟠', label:'Urgent',      color:'var(--orange)' },
+  TRES_URGENT:  { dot:'🔴', label:'Très urgent', color:'var(--red)' },
+};
+
+// ═══════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════
+function doLogin() {
+  const u = document.getElementById('u').value.trim().toLowerCase();
+  const p = document.getElementById('p').value;
+  const err = document.getElementById('login-err');
+  if(USERS[u] === p) {
+    currentUser = u;
+    sessionStorage.setItem('crm_user', u);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('show');
+    document.getElementById('user-label').textContent = u;
+    loadData();
+  } else {
+    err.textContent = 'Identifiant ou mot de passe incorrect.';
+    err.classList.add('show');
+    document.getElementById('p').value = '';
+  }
+}
+function doLogout() {
+  sessionStorage.removeItem('crm_user');
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('u').value = '';
+  document.getElementById('p').value = '';
+}
+['u','p'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+
+// ═══════════════════════════════════════════════════
+//  DONNÉES
+// ═══════════════════════════════════════════════════
+async function loadData() {
+  CRM_DATA = LS.load('appels', []);
+  renderAll();
+  if(JB_OK) {
+    try {
+      const d = await jbGet(JB_BIN_CRM);
+      if(d.appels?.length) { CRM_DATA = d.appels; LS.save('appels', CRM_DATA); renderAll(); }
+    } catch(e) { console.warn('JSONBin hors ligne — mode local'); }
+  }
+}
+
+async function saveData() {
+  LS.save('appels', CRM_DATA);
+  if(JB_OK) {
+    try { await jbSave(JB_BIN_CRM, { appels: CRM_DATA }); }
+    catch(e) { console.warn('JSONBin save failed'); }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════
+function renderAll() {
+  renderStats();
+  renderRappels();
+  renderList();
+}
+
+function renderStats() {
+  const today = new Date().toISOString().split('T')[0];
+  const s = { total:0, new:0, encours:0, traite:0, rappel:0 };
+  CRM_DATA.forEach(a => {
+    s.total++;
+    if(a.statut==='NOUVEAU')   s.new++;
+    if(a.statut==='EN_COURS')  s.encours++;
+    if(a.statut==='TRAITE')    s.traite++;
+    if(a.statut==='RAPPEL')    s.rappel++;
+  });
+  document.getElementById('s-total').textContent   = s.total;
+  document.getElementById('s-new').textContent     = s.new;
+  document.getElementById('s-encours').textContent = s.encours;
+  document.getElementById('s-traite').textContent  = s.traite;
+  document.getElementById('s-rappel').textContent  = s.rappel;
+}
+
+function renderRappels() {
+  const today = new Date().toISOString().split('T')[0];
+  const dus = CRM_DATA.filter(a => a.rappelDate === today && a.statut !== 'TRAITE');
+  const banner = document.getElementById('rappels-banner');
+  const dotWrap = document.getElementById('rappel-dot-wrap');
+  if(dus.length) {
+    dotWrap.style.display = 'flex';
+    document.getElementById('rappel-count').textContent = dus.length;
+    banner.innerHTML = dus.map(a => `
+      <div class="rappel-alert">
+        <div class="rappel-alert-icon"><i class="fas fa-bell"></i></div>
+        <div class="rappel-alert-body">
+          <div class="rappel-alert-title">🔔 Rappel aujourd'hui — ${a.nom} ${a.tel?'· '+a.tel:''}</div>
+          <div class="rappel-alert-sub">${TYPE_CFG[a.type]?.emoji||'📋'} ${TYPE_CFG[a.type]?.label||a.type} · ${a.resume?.substring(0,80)||'—'}</div>
+        </div>
+        <button class="btn btn-sm" style="background:var(--orange);color:#fff;flex-shrink:0" onclick="ouvrirFiche('${a.id}')">Voir la fiche</button>
+      </div>`).join('');
+  } else {
+    dotWrap.style.display = 'none';
+    banner.innerHTML = '';
+  }
+}
+
+function renderList() {
+  const search  = document.getElementById('search')?.value?.toLowerCase()||'';
+  const fType   = document.getElementById('f-type')?.value||'';
+  const fUrg    = document.getElementById('f-urgence')?.value||'';
+  const fStatut = document.getElementById('f-statut')?.value || activeStatFilter;
+  const today   = new Date().toISOString().split('T')[0];
+
+  const data = CRM_DATA.filter(a => {
+    if(fType   && a.type !== fType) return false;
+    if(fUrg    && a.urgence !== fUrg) return false;
+    if(fStatut && a.statut !== fStatut) return false;
+    if(search) {
+      const hay = [a.nom,a.tel,a.email,a.structure,a.resume,a.notes,a.type].join(' ').toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  }).sort((a,b)=> {
+    // Très urgent en premier, puis par date décroissante
+    const uo = {TRES_URGENT:0,URGENT:1,NORMAL:2};
+    if(uo[a.urgence]!==uo[b.urgence]) return uo[a.urgence]-uo[b.urgence];
+    return new Date(b.dateCreation) - new Date(a.dateCreation);
+  });
+
+  const cont = document.getElementById('cards-list');
+  if(!data.length) {
+    cont.innerHTML = `<div class="empty"><span class="empty-icon">📞</span><p>${CRM_DATA.length?'Aucun résultat pour ce filtre.':'Aucun appel enregistré — cliquez <strong>Nouvel appel</strong>'}</p></div>`;
+    return;
+  }
+
+  const fmtD = d => { try{ const dt=new Date(d); return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return d||'—'; }};
+  const tc = a => TYPE_CFG[a.type] || TYPE_CFG.AUTRE;
+  const sc = a => STATUT_CFG[a.statut] || STATUT_CFG.NOUVEAU;
+  const uc = a => URGENCE_CFG[a.urgence] || URGENCE_CFG.NORMAL;
+
+  cont.innerHTML = data.map(a => {
+    const rappelToday = a.rappelDate === today && a.statut !== 'TRAITE';
+    return `<div class="contact-card ${a.urgence==='TRES_URGENT'?'urgent':rappelToday?'rappel-today':''}" onclick="ouvrirFiche('${a.id}')">
+      <div class="type-badge" style="background:${tc(a).bg}">
+        <span style="font-size:20px">${tc(a).emoji}</span>
+      </div>
+      <div class="card-main">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="card-name">${a.nom||'—'}</span>
+          ${a.structure ? `<span style="font-size:12px;color:var(--text3)">· ${a.structure}</span>` : ''}
+          <span class="tag" style="color:${uc(a).color};background:${uc(a).color}1a">${uc(a).dot}</span>
+        </div>
+        <div class="card-tel">${a.tel||'—'}${a.email?' · '+a.email:''}</div>
+        <div class="card-resume">${a.resume||'—'}</div>
+        ${rappelToday ? `<div style="font-size:11px;font-weight:700;color:var(--orange);margin-top:4px"><i class="fas fa-bell"></i> Rappel aujourd'hui</div>` : ''}
+        ${a.rappelDate && !rappelToday && a.statut!=='TRAITE' ? `<div style="font-size:11px;color:var(--text3);margin-top:2px"><i class="fas fa-calendar"></i> Rappel : ${new Date(a.rappelDate).toLocaleDateString('fr-FR')}</div>` : ''}
+      </div>
+      <div class="card-meta">
+        <span class="tag" style="color:${tc(a).color};background:${tc(a).bg}">${tc(a).label}</span>
+        <span class="tag" style="color:${sc(a).color};background:${sc(a).bg}">${sc(a).label}</span>
+        <span class="card-date">${fmtD(a.dateCreation)}</span>
+      </div>
+      <div class="card-actions" onclick="event.stopPropagation()">
+        <div class="icon-btn green" title="Marquer traité" onclick="marquerTraite('${a.id}')"><i class="fas fa-check"></i></div>
+        <div class="icon-btn" title="Renvoyer email" onclick="renvoyerEmail('${a.id}')"><i class="fas fa-envelope"></i></div>
+        <div class="icon-btn danger" title="Supprimer" onclick="supprimer('${a.id}')"><i class="fas fa-trash"></i></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterStat(s) {
+  activeStatFilter = s;
+  document.getElementById('f-statut').value = s;
+  renderList();
+}
+
+// ═══════════════════════════════════════════════════
+//  MODAL NOUVEL APPEL
+// ═══════════════════════════════════════════════════
+let selectedType    = '';
+let selectedUrgence = 'NORMAL';
+let selectedDests   = new Set();
+
+function openNouvelAppel() {
+  selectedType = ''; selectedUrgence = 'NORMAL'; selectedDests = new Set();
+  // Reset form
+  ['a-nom','a-tel','a-email','a-structure','a-resume','a-equip','a-devis-mat','a-notes','a-rappel'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('a-statut').value = 'NOUVEAU';
+  document.getElementById('a-prisby').value = currentUser||'admin';
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('selected'));
+  document.querySelectorAll('.urgence-btn').forEach(b=>b.className='urgence-btn');
+  document.querySelectorAll('.dest-btn').forEach(b=>{ b.classList.remove('selected'); b.querySelector('input').checked=false; });
+  document.getElementById('a-equip-wrap').style.display='none';
+  document.getElementById('a-devis-wrap').style.display='none';
+  openModal('modal-appel');
+}
+
+function selectType(el) {
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  el.style.borderColor   = el.style.getPropertyValue('--bc') || 'var(--accent)';
+  el.style.background    = el.style.getPropertyValue('--bl') || 'var(--accent-l)';
+  selectedType = el.dataset.type;
+  // Champs contextuels
+  document.getElementById('a-equip-wrap').style.display = ['SAV'].includes(selectedType)?'':'none';
+  document.getElementById('a-devis-wrap').style.display = selectedType==='DEVIS'?'':'none';
+  // Auto-sélection destinataire
+  autoSelectDest();
+}
+
+function autoSelectDest() {
+  const map = {
+    RENSEIGNEMENT: ['jean@meditec.fr'],
+    DEVIS:         ['commercial@meditec.fr','jean@meditec.fr'],
+    RDV:           ['commercial@meditec.fr'],
+    COMPTABLE:     ['compta@meditec.fr','jean@meditec.fr'],
+    SAV:           ['technique@meditec.fr'],
+    AUTRE:         ['jean@meditec.fr'],
+  };
+  const toSelect = map[selectedType]||[];
+  document.querySelectorAll('.dest-btn').forEach(btn=>{
+    const email = btn.querySelector('input').value;
+    const sel   = toSelect.includes(email);
+    btn.classList.toggle('selected', sel);
+    btn.querySelector('input').checked = sel;
+    if(sel) selectedDests.add(email); else selectedDests.delete(email);
+  });
+}
+
+function selectUrgence(el) {
+  document.querySelectorAll('.urgence-btn').forEach(b=>b.className='urgence-btn');
+  selectedUrgence = el.dataset.u;
+  el.classList.add('selected-'+el.dataset.u.toLowerCase().replace('_','-'));
+}
+
+function toggleDest(btn, email) {
+  btn.classList.toggle('selected');
+  const cb = btn.querySelector('input');
+  cb.checked = !cb.checked;
+  if(cb.checked) selectedDests.add(email); else selectedDests.delete(email);
+}
+
+async function saveAppel(sendEmail) {
+  const nom    = document.getElementById('a-nom').value.trim();
+  const tel    = document.getElementById('a-tel').value.trim();
+  const resume = document.getElementById('a-resume').value.trim();
+  if(!nom)    { toast('Nom requis','error'); return; }
+  if(!resume) { toast('Résumé requis','error'); return; }
+  if(!selectedType) { toast('Sélectionnez un type','error'); return; }
+
+  const appel = {
+    id:          'CRM-'+Date.now(),
+    dateCreation: new Date().toISOString(),
+    type:        selectedType,
+    urgence:     selectedUrgence,
+    statut:      document.getElementById('a-statut').value,
+    nom, tel,
+    email:       document.getElementById('a-email').value.trim(),
+    structure:   document.getElementById('a-structure').value.trim(),
+    resume,
+    equip:       document.getElementById('a-equip').value.trim(),
+    devisMat:    document.getElementById('a-devis-mat').value.trim(),
+    notes:       document.getElementById('a-notes').value.trim(),
+    rappelDate:  document.getElementById('a-rappel').value,
+    prisby:      document.getElementById('a-prisby').value,
+    destinataires: [...selectedDests],
+    historique:  [{date: new Date().toISOString(), action:'Appel enregistré par '+document.getElementById('a-prisby').value, user: currentUser}]
+  };
+
+  CRM_DATA.unshift(appel);
+  await saveData();
+  closeModal('modal-appel');
+  renderAll();
+  toast('Appel '+appel.id+' enregistré','success');
+
+  if(sendEmail && selectedDests.size > 0) {
+    setTimeout(()=>envoyerEmailAppel(appel), 300);
+  }
+}
+
+function envoyerEmailAppel(appel) {
+  const tc = TYPE_CFG[appel.type] || TYPE_CFG.AUTRE;
+  const uc = URGENCE_CFG[appel.urgence] || URGENCE_CFG.NORMAL;
+  const to = [...(appel.destinataires||[])].join(',');
+  const subj = `[MEDITEC CRM] ${tc.emoji} ${tc.label} — ${appel.nom}${appel.urgence==='TRES_URGENT'?' 🚨 URGENT':''}`;
+  const body = [
+    '=== NOUVEAU CONTACT MEDITEC ===',
+    '',
+    'N° : '+appel.id,
+    'Date : '+new Date(appel.dateCreation).toLocaleString('fr-FR'),
+    'Type : '+tc.label,
+    'Urgence : '+uc.label,
+    '',
+    '--- APPELANT ---',
+    'Nom : '+appel.nom,
+    'Téléphone : '+(appel.tel||'—'),
+    'Email : '+(appel.email||'—'),
+    'Structure : '+(appel.structure||'—'),
+    '',
+    '--- DEMANDE ---',
+    appel.resume,
+    appel.equip    ? '\nÉquipement : '+appel.equip  : '',
+    appel.devisMat ? '\nMatériel souhaité : '+appel.devisMat : '',
+    '',
+    '--- ACTION ATTENDUE ---',
+    actionAttendue(appel.type),
+    '',
+    '— Pris par : '+appel.prisby,
+    '— PSDM MEDITEC CRM',
+  ].join('\n');
+  window.open('mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body));
+}
+
+function actionAttendue(type) {
+  const m = {
+    RENSEIGNEMENT:'Rappeler le client pour répondre à sa demande de renseignement.',
+    DEVIS:        'Préparer et envoyer un devis dans les meilleurs délais.',
+    RDV:          'Contacter le client pour fixer une date de rendez-vous.',
+    COMPTABLE:    'Traiter le problème comptable signalé en priorité.',
+    SAV:          'Planifier une intervention technique.',
+    AUTRE:        'Traiter la demande et contacter le client si nécessaire.',
+  };
+  return m[type]||'À traiter.';
+}
+
+// ═══════════════════════════════════════════════════
+//  FICHE DÉTAIL
+// ═══════════════════════════════════════════════════
+function ouvrirFiche(id) {
+  const a = CRM_DATA.find(x=>x.id===id);
+  if(!a) return;
+  currentFicheId = id;
+  const tc = TYPE_CFG[a.type] || TYPE_CFG.AUTRE;
+  const sc = STATUT_CFG[a.statut] || STATUT_CFG.NOUVEAU;
+  const uc = URGENCE_CFG[a.urgence] || URGENCE_CFG.NORMAL;
+  const fmtD = d => { try{return new Date(d).toLocaleString('fr-FR');}catch(e){return d||'—';} };
+
+  document.getElementById('fiche-title').textContent = tc.emoji+' '+a.nom+' — '+a.id;
+
+  document.getElementById('fiche-body').innerHTML = `
+<div id="print-zone">
+  <!-- Header print -->
+  <div style="display:none" id="print-header">
+    <h2 style="font-family:sans-serif">MEDITEC — Fiche contact CRM</h2>
+    <hr>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+    <span class="tag" style="color:${tc.color};background:${tc.bg};font-size:13px;padding:5px 12px">${tc.emoji} ${tc.label}</span>
+    <span class="tag" style="color:${sc.color};background:${sc.bg};font-size:13px;padding:5px 12px">${sc.label}</span>
+    <span class="tag" style="color:${uc.color};background:${uc.color}1a;font-size:13px;padding:5px 12px">${uc.dot} ${uc.label}</span>
+  </div>
+
+  <div class="detail-grid">
+    <div>
+      <div class="detail-label">👤 Appelant</div>
+      <div class="detail-value" style="font-size:18px;font-weight:700">${a.nom}</div>
+      ${a.structure?`<div style="font-size:13px;color:var(--text3);margin-top:2px">${a.structure}</div>`:''}
+    </div>
+    <div>
+      <div class="detail-label">📞 Contact</div>
+      <div class="detail-value" style="font-family:'DM Mono',monospace">${a.tel||'—'}</div>
+      ${a.email?`<div style="font-size:13px;color:var(--accent);margin-top:2px">${a.email}</div>`:''}
+    </div>
+    <div>
+      <div class="detail-label">🕐 Date de l'appel</div>
+      <div class="detail-value">${fmtD(a.dateCreation)}</div>
+    </div>
+    <div>
+      <div class="detail-label">👷 Pris par</div>
+      <div class="detail-value">${a.prisby||'—'}</div>
+    </div>
+    ${a.equip?`<div class="full"><div class="detail-label">🔧 Équipement</div><div class="detail-value" style="font-family:'DM Mono',monospace">${a.equip}</div></div>`:''}
+    ${a.devisMat?`<div class="full"><div class="detail-label">💰 Matériel souhaité</div><div class="detail-value">${a.devisMat}</div></div>`:''}
+  </div>
+
+  <div style="margin:20px 0">
+    <div class="detail-label">📝 Résumé de la demande</div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:14px;line-height:1.6;margin-top:6px">${a.resume}</div>
+  </div>
+
+  ${a.notes?`<div style="margin-bottom:16px"><div class="detail-label">🔒 Notes internes</div><div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:12px;font-size:13px;margin-top:6px">${a.notes}</div></div>`:''}
+
+  ${a.rappelDate?`<div style="background:var(--orange-l);border:1px solid #fcd34d;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px"><i class="fas fa-bell" style="color:var(--orange)"></i><div><div style="font-weight:700;color:var(--orange)">Rappel prévu</div><div style="font-size:13px;color:var(--text2)">${new Date(a.rappelDate).toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div></div></div>`:''}
+
+  <!-- Modifier statut rapide -->
+  <div style="margin-bottom:20px">
+    <div class="detail-label" style="margin-bottom:8px">⚡ Modifier le statut</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${Object.entries(STATUT_CFG).map(([k,v])=>`<button class="btn btn-sm ${a.statut===k?'btn-primary':' btn-outline'}" onclick="changerStatut('${id}','${k}')" style="${a.statut===k?'':''}"><span style="color:${v.color}">${v.label}</span></button>`).join('')}
+    </div>
+  </div>
+
+  <!-- Historique -->
+  <div>
+    <div class="detail-label" style="margin-bottom:8px">📋 Historique</div>
+    ${(a.historique||[]).reverse().map(h=>`<div class="history-item"><div class="h-date">${fmtD(h.date)} — ${h.user||'—'}</div>${h.action}</div>`).join('')||'<div style="color:var(--text3);font-size:13px">Aucun historique</div>'}
+  </div>
+</div>`;
+
+  document.getElementById('fiche-email-btn').onclick = ()=>renvoyerEmail(id);
+  document.getElementById('fiche-traiter-btn').onclick = ()=>{ marquerTraite(id); closeModal('modal-fiche'); };
+  openModal('modal-fiche');
+}
+
+function changerStatut(id, newStatut) {
+  const idx = CRM_DATA.findIndex(a=>a.id===id);
+  if(idx<0) return;
+  CRM_DATA[idx].statut = newStatut;
+  CRM_DATA[idx].historique = CRM_DATA[idx].historique||[];
+  CRM_DATA[idx].historique.push({date:new Date().toISOString(),action:'Statut changé : '+STATUT_CFG[newStatut].label,user:currentUser});
+  saveData();
+  renderAll();
+  ouvrirFiche(id); // Rafraîchir la fiche
+}
+
+function marquerTraite(id) {
+  changerStatut(id,'TRAITE');
+  toast('Marqué comme traité','success');
+}
+
+function renvoyerEmail(id) {
+  const a = CRM_DATA.find(x=>x.id===id);
+  if(!a) return;
+  envoyerEmailAppel(a);
+  // Log historique
+  const idx = CRM_DATA.findIndex(x=>x.id===id);
+  if(idx>=0) {
+    CRM_DATA[idx].historique = CRM_DATA[idx].historique||[];
+    CRM_DATA[idx].historique.push({date:new Date().toISOString(),action:'Email renvoyé à : '+(a.destinataires||[]).join(', '),user:currentUser});
+    saveData();
+  }
+}
+
+function supprimer(id) {
+  if(!confirm('Supprimer cette fiche ? Action irréversible.')) return;
+  CRM_DATA = CRM_DATA.filter(a=>a.id!==id);
+  saveData(); renderAll();
+  toast('Fiche supprimée','warning');
+}
+
+function imprimerFiche() {
+  const zone = document.getElementById('print-zone');
+  if(!zone) return;
+  const header = document.getElementById('print-header');
+  if(header) header.style.display='block';
+  const w = window.open('','_blank');
+  w.document.write('<html><head><title>Fiche CRM MEDITEC</title><style>body{font-family:Arial,sans-serif;margin:30px;font-size:13px}.detail-label{font-size:10px;font-weight:bold;text-transform:uppercase;color:#666;margin-bottom:4px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}</style></head><body>');
+  w.document.write(zone.innerHTML);
+  w.document.write('</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+
+function exportCRMEmail() {
+  const today = new Date().toLocaleDateString('fr-FR');
+  let text = 'EXPORT CRM MEDITEC — '+today+'\n'+'='.repeat(50)+'\n\n';
+  CRM_DATA.forEach(a=>{
+    const tc=TYPE_CFG[a.type]||TYPE_CFG.AUTRE;
+    const sc=STATUT_CFG[a.statut]||STATUT_CFG.NOUVEAU;
+    text+=`${a.id} | ${tc.label} | ${a.nom} | ${a.tel||'—'} | ${sc.label} | ${new Date(a.dateCreation).toLocaleDateString('fr-FR')}\n`;
+    text+=`  → ${a.resume?.substring(0,80)||'—'}\n\n`;
+  });
+  window.location.href='mailto:?subject='+encodeURIComponent('Export CRM MEDITEC — '+today)+'&body='+encodeURIComponent(text);
+}
+
+// ═══════════════════════════════════════════════════
+//  UTILITAIRES
+// ═══════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id)?.classList.add('open'); }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
+
+function toast(msg, type='info') {
+  const icons={success:'fa-check-circle',error:'fa-times-circle',info:'fa-info-circle',warning:'fa-exclamation-triangle'};
+  const t=document.createElement('div'); t.className='toast '+type;
+  t.innerHTML=`<i class="fas ${icons[type]}"></i> ${msg}`;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+const savedUser = sessionStorage.getItem('crm_user');
+if(savedUser && USERS[savedUser]) {
+  currentUser = savedUser;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  document.getElementById('user-label').textContent = savedUser;
+  loadData();
+}
+</script>
+</body>
+</html>
